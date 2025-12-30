@@ -14,7 +14,9 @@ export function PrivyClientProvider({ children }: { children: React.ReactNode })
         appearance: {
           theme: "dark",
           accentColor: "#6241E8",
+          logo: "/icon.png",
         },
+        defaultChain: mantleSepoliaTestnet,
         supportedChains: [base, mainnet, optimism, arbitrum, polygon, mantleSepoliaTestnet],
         embeddedWallets: {
           createOnLogin: "users-without-wallets",

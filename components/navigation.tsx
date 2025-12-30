@@ -3,11 +3,13 @@
 import Link from "next/link"
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
-import { MapPin, Menu, X } from "lucide-react"
+import { MapPin, Menu, X, AlertTriangle } from "lucide-react"
 import { useState } from "react"
+import { useNetwork } from "@/hooks/use-network"
 
 export function Navigation() {
   const { login, logout, authenticated, user } = usePrivy()
+  const { isMantleSepolia, switchToMantleSepolia, isSwitching, currentChainName } = useNetwork()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -15,10 +17,7 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/launch" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-primary">
-              <MapPin className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-foreground">KyraQuest</span>
+            <img src="/icon-logo-text.png" alt="KyraQuest" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -42,6 +41,26 @@ export function Navigation() {
           <div className="hidden md:flex items-center gap-3">
             {authenticated ? (
               <>
+                <div className="flex flex-col items-end mr-2">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Network
+                  </span>
+                  <span className={`text-xs font-medium ${isMantleSepolia ? "text-primary" : "text-destructive"}`}>
+                    {currentChainName}
+                  </span>
+                </div>
+                {!isMantleSepolia && (
+                  <Button
+                    onClick={switchToMantleSepolia}
+                    disabled={isSwitching}
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    {isSwitching ? "Switching..." : "Switch to Mantle"}
+                  </Button>
+                )}
                 <span className="text-sm text-muted-foreground">{user?.email?.address || "Connected"}</span>
                 <Button onClick={logout} variant="outline" size="sm">
                   Logout
@@ -80,6 +99,17 @@ export function Navigation() {
                 >
                   Dashboard
                 </Link>
+              )}
+              {authenticated && !isMantleSepolia && (
+                <Button
+                  onClick={switchToMantleSepolia}
+                  disabled={isSwitching}
+                  variant="destructive"
+                  className="w-full gap-2"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  {isSwitching ? "Switching..." : "Switch to Mantle"}
+                </Button>
               )}
               {authenticated ? (
                 <Button onClick={logout} variant="outline" className="w-full bg-transparent">

@@ -6,6 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: ['pino', 'thread-stream', 'pino-pretty'],
+  turbopack: {},
 }
 
 export default nextConfig

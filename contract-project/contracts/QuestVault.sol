@@ -87,8 +87,9 @@ contract QuestVault is AutomationCompatibleInterface {
     /**
      * @dev Chainlink Automation: Check if quest should be closed.
      */
-    function checkUpkeep(bytes calldata /* checkData */) external view override returns (bool upkeepNeeded, bytes memory /* performData */) {
+    function checkUpkeep(bytes calldata /* checkData */) external view override returns (bool upkeepNeeded, bytes memory performData) {
         upkeepNeeded = active && (block.timestamp >= expiryTimestamp || claimsMade >= maxClaims);
+        performData = "";
     }
 
     /**

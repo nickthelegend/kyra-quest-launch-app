@@ -6,3 +6,8 @@ export const SUPABASE_URL = "https://phidvdsfmtetcsqwmfnv.supabase.co"
 export const SUPABASE_KEY = "sb_publishable_3txPu7Wjj_vlawCZEUyV8Q_Cg8W7fOA"
 export const BACKEND_URL = "https://spin-rewards-21.preview.emergentagent.com"
 export const GOOGLE_MAPS_API_KEY = "AIzaSyACn5LbHpFrDZrJ9pkg1OLc4EkntvcmNsA"
+
+// Contract Addresses (to be updated after deployment)
+export const QUEST_FACTORY_ADDRESS = "0x0000000000000000000000000000000000000000"
+export const KYRA_TOKEN_ADDRESS = "0x0000000000000000000000000000000000000000"
+export const PLAYER_REGISTRY_ADDRESS = "0x0000000000000000000000000000000000000000"

@@ -3,14 +3,33 @@
 import Link from "next/link"
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
-import { MapPin, Menu, X, AlertTriangle } from "lucide-react"
-import { useState } from "react"
+import { Menu, X, AlertTriangle, Trophy } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useNetwork } from "@/hooks/use-network"
+import { supabase } from "@/lib/supabase"
 
 export function Navigation() {
   const { login, logout, authenticated, user } = usePrivy()
   const { isMantleSepolia, switchToMantleSepolia, isSwitching, currentChainName } = useNetwork()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [questCount, setQuestCount] = useState<number>(0)
+
+  useEffect(() => {
+    fetchQuestCount()
+  }, [])
+
+  const fetchQuestCount = async () => {
+    try {
+      const { count } = await supabase
+        .from("quests")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true)
+
+      setQuestCount(count || 0)
+    } catch (err) {
+      console.error("Error fetching quest count:", err)
+    }
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
@@ -27,6 +46,15 @@ export function Navigation() {
             </Link>
             <Link href="/launch/merchant" className="text-muted-foreground hover:text-foreground transition-colors">
               For Merchants
+            </Link>
+            <Link href="/quests" className="relative flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+              <Trophy className="w-4 h-4" />
+              Quests
+              {questCount > 0 && (
+                <span className="absolute -top-2 -right-4 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold">
+                  {questCount > 99 ? "99+" : questCount}
+                </span>
+              )}
             </Link>
             <Link href="/help" className="text-muted-foreground hover:text-foreground transition-colors">
               Help
@@ -88,6 +116,15 @@ export function Navigation() {
               </Link>
               <Link href="/launch/merchant" className="text-muted-foreground hover:text-foreground transition-colors">
                 For Merchants
+              </Link>
+              <Link href="/quests" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Trophy className="w-4 h-4" />
+                Quests
+                {questCount > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold">
+                    {questCount > 99 ? "99+" : questCount}
+                  </span>
+                )}
               </Link>
               <Link href="/help" className="text-muted-foreground hover:text-foreground transition-colors">
                 Help

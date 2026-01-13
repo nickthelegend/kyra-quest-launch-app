@@ -43,9 +43,9 @@ export default function CreateQuestPage() {
       <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-purple-500/10" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
         <Navigation />
         <div className="relative z-10 pt-32 px-4">
@@ -55,7 +55,7 @@ export default function CreateQuestPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl p-12 rounded-3xl border border-white/10 shadow-2xl"
             >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
                 <Rocket className="w-10 h-10 text-white" />
               </div>
               <h1 className="text-4xl font-bold text-white mb-4">Launch Your Quest</h1>
@@ -63,7 +63,7 @@ export default function CreateQuestPage() {
               <Button
                 onClick={login}
                 size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white text-lg px-10 py-6 h-auto rounded-2xl shadow-lg shadow-emerald-500/25 transition-all hover:shadow-emerald-500/40 hover:scale-105"
+                className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white text-lg px-10 py-6 h-auto rounded-2xl shadow-lg shadow-violet-500/25 transition-all hover:shadow-violet-500/40 hover:scale-105"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Connect Wallet
@@ -187,9 +187,9 @@ export default function CreateQuestPage() {
     <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden font-sans">
       {/* Animated background */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-cyan-500/5" />
-        <div className="absolute top-0 left-1/3 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[128px]" />
-        <div className="absolute bottom-0 right-1/3 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[128px]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5" />
+        <div className="absolute top-0 left-1/3 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[128px]" />
+        <div className="absolute bottom-0 right-1/3 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[128px]" />
       </div>
 
       <Navigation />
@@ -202,12 +202,12 @@ export default function CreateQuestPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-10 text-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-6">
               <Zap className="w-4 h-4" />
               Deploy in minutes
             </div>
             <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-4 tracking-tight">
-              Create a <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Quest</span>
+              Create a <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Quest</span>
             </h1>
             <p className="text-gray-400 text-lg max-w-xl mx-auto">
               Design engaging quests and reward your community with KYRA tokens on Mantle Network
@@ -229,17 +229,17 @@ export default function CreateQuestPage() {
                   transition={{ delay: i * 0.1 }}
                 >
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all duration-500 ${step >= s.num
-                      ? "bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/30"
-                      : "bg-white/5 text-gray-500 border border-white/10"
+                    ? "bg-gradient-to-br from-violet-500 to-purple-500 text-white shadow-lg shadow-violet-500/30"
+                    : "bg-white/5 text-gray-500 border border-white/10"
                     }`}>
                     {step > s.num ? <CheckCircle2 className="w-5 h-5" /> : s.num}
                   </div>
-                  <span className={`text-xs mt-2 font-medium ${step >= s.num ? "text-emerald-400" : "text-gray-500"}`}>
+                  <span className={`text-xs mt-2 font-medium ${step >= s.num ? "text-violet-400" : "text-gray-500"}`}>
                     {s.label}
                   </span>
                 </motion.div>
                 {i < 2 && (
-                  <div className={`w-16 h-0.5 mx-3 rounded transition-all duration-500 ${step > s.num ? "bg-gradient-to-r from-emerald-500 to-cyan-500" : "bg-white/10"
+                  <div className={`w-16 h-0.5 mx-3 rounded transition-all duration-500 ${step > s.num ? "bg-gradient-to-r from-violet-500 to-purple-500" : "bg-white/10"
                     }`} />
                 )}
               </div>
@@ -275,14 +275,14 @@ export default function CreateQuestPage() {
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             className={`group relative p-6 rounded-2xl border-2 transition-all text-left ${isSelected
-                                ? "border-emerald-500 bg-emerald-500/10"
-                                : "border-white/10 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]"
+                              ? "border-violet-500 bg-violet-500/10"
+                              : "border-white/10 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]"
                               }`}
                           >
                             {isSelected && (
                               <motion.div
                                 layoutId="selectedBorder"
-                                className="absolute inset-0 rounded-2xl border-2 border-emerald-500"
+                                className="absolute inset-0 rounded-2xl border-2 border-violet-500"
                               />
                             )}
                             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${type.gradient} flex items-center justify-center mb-4 shadow-lg`}>
@@ -293,14 +293,14 @@ export default function CreateQuestPage() {
                             <div className="space-y-2">
                               {type.features.map((feature, i) => (
                                 <div key={i} className="flex items-center gap-2 text-xs text-gray-500">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                  <CheckCircle2 className="w-3 h-3 text-violet-500" />
                                   {feature}
                                 </div>
                               ))}
                             </div>
                             {isSelected && (
                               <div className="absolute top-4 right-4">
-                                <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                                <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center">
                                   <CheckCircle2 className="w-4 h-4 text-white" />
                                 </div>
                               </div>
@@ -330,7 +330,7 @@ export default function CreateQuestPage() {
                       <div className="space-y-6">
                         <div className="space-y-3">
                           <Label htmlFor="name" className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-emerald-500" />
+                            <Trophy className="w-4 h-4 text-violet-500" />
                             Quest Name
                           </Label>
                           <Input
@@ -338,13 +338,13 @@ export default function CreateQuestPage() {
                             value={questData.name}
                             onChange={(e) => setQuestData({ ...questData, name: e.target.value })}
                             placeholder="e.g. Mantle Explorer Hunt"
-                            className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
+                            className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white placeholder:text-gray-500 focus:border-violet-500 focus:ring-violet-500/20 transition-all"
                           />
                         </div>
 
                         <div className="space-y-3">
                           <Label htmlFor="description" className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <Star className="w-4 h-4 text-emerald-500" />
+                            <Star className="w-4 h-4 text-violet-500" />
                             Description
                           </Label>
                           <Textarea
@@ -352,7 +352,7 @@ export default function CreateQuestPage() {
                             value={questData.description}
                             onChange={(e) => setQuestData({ ...questData, description: e.target.value })}
                             placeholder="What do players need to do to complete this quest?"
-                            className="bg-white/5 border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all min-h-[140px]"
+                            className="bg-white/5 border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 focus:border-violet-500 focus:ring-violet-500/20 transition-all min-h-[140px]"
                           />
                         </div>
                       </div>
@@ -360,7 +360,7 @@ export default function CreateQuestPage() {
                       <div className="space-y-6">
                         <div className="space-y-3">
                           <Label htmlFor="expiry" className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-emerald-500" />
+                            <Calendar className="w-4 h-4 text-violet-500" />
                             Expiry Date
                           </Label>
                           <Input
@@ -368,14 +368,14 @@ export default function CreateQuestPage() {
                             type="date"
                             value={questData.expiry}
                             onChange={(e) => setQuestData({ ...questData, expiry: e.target.value })}
-                            className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white [color-scheme:dark] focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
+                            className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white [color-scheme:dark] focus:border-violet-500 focus:ring-violet-500/20 transition-all"
                           />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-3">
                             <Label htmlFor="maxClaims" className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                              <Users className="w-4 h-4 text-emerald-500" />
+                              <Users className="w-4 h-4 text-violet-500" />
                               Max Claims
                             </Label>
                             <Input
@@ -383,13 +383,13 @@ export default function CreateQuestPage() {
                               type="number"
                               value={questData.maxClaims}
                               onChange={(e) => setQuestData({ ...questData, maxClaims: e.target.value })}
-                              className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
+                              className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white focus:border-violet-500 focus:ring-violet-500/20 transition-all"
                             />
                           </div>
 
                           <div className="space-y-3">
                             <Label htmlFor="reward" className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                              <Coins className="w-4 h-4 text-emerald-500" />
+                              <Coins className="w-4 h-4 text-violet-500" />
                               Reward
                             </Label>
                             <div className="relative">
@@ -398,9 +398,9 @@ export default function CreateQuestPage() {
                                 type="number"
                                 value={questData.rewardAmount}
                                 onChange={(e) => setQuestData({ ...questData, rewardAmount: e.target.value })}
-                                className="bg-white/5 border-white/10 rounded-xl h-14 px-5 pr-16 text-white focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
+                                className="bg-white/5 border-white/10 rounded-xl h-14 px-5 pr-16 text-white focus:border-violet-500 focus:ring-violet-500/20 transition-all"
                               />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-sm">
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-violet-500 font-bold text-sm">
                                 KYRA
                               </span>
                             </div>
@@ -408,16 +408,16 @@ export default function CreateQuestPage() {
                         </div>
 
                         {/* Budget Summary Card */}
-                        <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
+                        <div className="p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-gray-400 text-sm font-medium">Total Budget Required</span>
-                            <Shield className="w-4 h-4 text-emerald-500" />
+                            <Shield className="w-4 h-4 text-violet-500" />
                           </div>
                           <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-extrabold text-white">
                               {(Number(questData.maxClaims) * Number(questData.rewardAmount)).toLocaleString()}
                             </span>
-                            <span className="text-emerald-500 font-bold">KYRA</span>
+                            <span className="text-violet-500 font-bold">KYRA</span>
                           </div>
                           <p className="text-xs text-gray-500 mt-2">Fund the quest vault after launching</p>
                         </div>
@@ -446,8 +446,8 @@ export default function CreateQuestPage() {
                           <h3 className="text-3xl font-bold text-white">{questData.name || "Untitled Quest"}</h3>
                           <div className="flex items-center gap-2 mt-2">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${questType === "map" ? "bg-orange-500/20 text-orange-400" :
-                                questType === "qr" ? "bg-purple-500/20 text-purple-400" :
-                                  "bg-emerald-500/20 text-emerald-400"
+                              questType === "qr" ? "bg-purple-500/20 text-purple-400" :
+                                "bg-violet-500/20 text-violet-400"
                               }`}>
                               {questType === "map" ? "🗺️ Map Hunt" : questType === "qr" ? "📱 QR Scan" : "✓ Identity"}
                             </span>
@@ -455,7 +455,7 @@ export default function CreateQuestPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-5xl font-extrabold text-white">{questData.rewardAmount}</div>
-                          <div className="text-emerald-500 font-bold">KYRA per claim</div>
+                          <div className="text-violet-500 font-bold">KYRA per claim</div>
                         </div>
                       </div>
 
@@ -469,7 +469,7 @@ export default function CreateQuestPage() {
                           <div className="text-xs text-gray-500 uppercase font-medium mt-1">Expiry Date</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-3xl font-bold text-emerald-400">
+                          <div className="text-3xl font-bold text-violet-400">
                             {(Number(questData.maxClaims) * Number(questData.rewardAmount)).toLocaleString()}
                           </div>
                           <div className="text-xs text-gray-500 uppercase font-medium mt-1">Total Budget</div>
@@ -486,16 +486,16 @@ export default function CreateQuestPage() {
                         className="flex flex-col items-center gap-4 pt-4"
                       >
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-full border-4 border-emerald-500/30 border-t-emerald-500 animate-spin" />
-                          <Rocket className="w-6 h-6 text-emerald-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                          <div className="w-16 h-16 rounded-full border-4 border-violet-500/30 border-t-violet-500 animate-spin" />
+                          <Rocket className="w-6 h-6 text-violet-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
-                        <p className="text-emerald-400 font-medium">Deploying to Mantle Network...</p>
+                        <p className="text-violet-400 font-medium">Deploying to Mantle Network...</p>
                         {txHash && (
                           <a
                             href={`https://explorer.sepolia.mantle.xyz/tx/${txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-gray-500 hover:text-emerald-400 underline transition-colors"
+                            className="text-xs text-gray-500 hover:text-violet-400 underline transition-colors"
                           >
                             View Transaction →
                           </a>
@@ -522,7 +522,7 @@ export default function CreateQuestPage() {
                   <Button
                     onClick={handleNext}
                     disabled={step === 1 && !questType}
-                    className="gap-2 rounded-xl px-8 h-12 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+                    className="gap-2 rounded-xl px-8 h-12 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-bold transition-all shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
                   >
                     Continue
                     <ArrowRight className="w-4 h-4" />
@@ -531,7 +531,7 @@ export default function CreateQuestPage() {
                   <Button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="gap-2 rounded-xl px-10 h-14 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-extrabold text-lg transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-105"
+                    className="gap-2 rounded-xl px-10 h-14 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-extrabold text-lg transition-all shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105"
                   >
                     {!loading ? (
                       <>

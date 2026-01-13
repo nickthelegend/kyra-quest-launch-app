@@ -3,12 +3,13 @@
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useState } from "react"
-import { Map, QrCode, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Rocket, Coins, Calendar, Users, Sparkles, Shield, Zap, Trophy, Star, PlusCircle, Image as ImageIcon, Upload } from "lucide-react"
+import { Map, QrCode, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Rocket, Coins, Calendar, Users, Sparkles, Shield, Zap, Trophy, Star, PlusCircle, Image as ImageIcon, Upload, ShieldCheck } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ethers } from "ethers"
@@ -52,6 +53,9 @@ export default function CreateQuestPage() {
     expiry: "",
     maxClaims: "100",
     rewardAmount: "10",
+    nftGateAddress: "",
+    proofType: "none" as "none" | "ai_photo" | "social_post",
+    isBoosted: false
   })
 
   const wallet = wallets[0]
@@ -256,11 +260,16 @@ export default function CreateQuestPage() {
         is_active: true,
         creator_wallet: wallet.address.toLowerCase(),
         image_url: questImageUrl || null,
-        metadata: tokenType === "custom" ? {
-          custom_token: true,
-          token_name: customToken.name,
-          token_symbol: customToken.symbol
-        } : null
+        is_boosted: questData.isBoosted,
+        nft_gate_address: questData.nftGateAddress || null,
+        proof_type: questData.proofType,
+        is_verified_merchant: true, // Auto-verify quests from creators for now as per V2 roadmap
+        metadata: {
+          token_type: tokenType,
+          custom_token_name: tokenType === "custom" ? customToken.name : null,
+          custom_token_symbol: tokenType === "custom" ? customToken.symbol : null,
+          boosted_at: questData.isBoosted ? new Date().toISOString() : null
+        }
       })
 
       if (sbError) {
@@ -598,111 +607,166 @@ export default function CreateQuestPage() {
                                 type="number"
                                 value={questData.rewardAmount}
                                 onChange={(e) => setQuestData({ ...questData, rewardAmount: e.target.value })}
-                                className="bg-white/5 border-white/10 rounded-xl h-14 px-5 pr-20 text-white focus:border-violet-500 focus:ring-violet-500/20 transition-all"
+                                className="bg-white/5 border-white/10 rounded-xl h-14 pl-5 pr-12 text-white focus:border-violet-500 focus:ring-violet-500/20 transition-all"
                               />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-violet-500 font-bold text-sm">
-                                {tokenType === "custom" ? (customToken.symbol || "TOKEN") : "KYRA"}
-                              </span>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-violet-400">
+                                {tokenType === 'custom' ? customToken.symbol || 'TOK' : 'KYRA'}
+                              </div>
                             </div>
                           </div>
                         </div>
+                      </div>
 
-                        {/* Token Selection */}
-                        <div className="space-y-4 pt-4">
-                          <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <PlusCircle className="w-4 h-4 text-violet-500" />
-                            Reward Token
-                          </Label>
-                          <div className="grid grid-cols-2 gap-4">
-                            <button
-                              type="button"
-                              onClick={() => setTokenType("kyra")}
-                              className={`p-4 rounded-xl border-2 transition-all text-left ${tokenType === "kyra"
-                                ? "border-violet-500 bg-violet-500/10"
-                                : "border-white/10 bg-white/5 hover:border-white/20"
-                                }`}
-                            >
-                              <div className="font-bold text-white">KYRA Token</div>
-                              <div className="text-sm text-gray-400">Use platform token</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setTokenType("custom")}
-                              className={`p-4 rounded-xl border-2 transition-all text-left ${tokenType === "custom"
-                                ? "border-violet-500 bg-violet-500/10"
-                                : "border-white/10 bg-white/5 hover:border-white/20"
-                                }`}
-                            >
-                              <div className="font-bold text-white">Custom Token</div>
-                              <div className="text-sm text-gray-400">Launch your own token</div>
-                            </button>
+                      {/* Gating & Advanced */}
+                      <div className="pt-6 border-t border-white/5 space-y-6">
+                        <div className="space-y-4">
+                          <Label className="text-white text-xs font-black uppercase tracking-widest text-violet-400">Advanced Features</Label>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                              <Label htmlFor="nftGate" className="text-white text-sm font-bold flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-blue-400" />
+                                NFT Gating (Address)
+                              </Label>
+                              <Input
+                                id="nftGate"
+                                placeholder="0x... (Optional)"
+                                value={questData.nftGateAddress}
+                                onChange={(e) => setQuestData({ ...questData, nftGateAddress: e.target.value })}
+                                className="bg-white/5 border-white/10 rounded-xl h-14 px-5 text-white focus:border-blue-500 transition-all font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label className="text-white text-sm font-bold flex items-center gap-2">
+                                <Star className="w-4 h-4 text-yellow-400" />
+                                Boosting Status
+                              </Label>
+                              <div
+                                onClick={() => setQuestData({ ...questData, isBoosted: !questData.isBoosted })}
+                                className={`h-14 rounded-xl border-2 flex items-center justify-between px-5 cursor-pointer transition-all ${questData.isBoosted ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                              >
+                                <span className="text-sm font-bold text-white">Boost Visibility</span>
+                                {questData.isBoosted ? <Badge className="bg-yellow-500 text-black font-black">ACTIVE</Badge> : <PlusCircle className="w-5 h-5 text-gray-500" />}
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Custom Token Form */}
-                          {tokenType === "custom" && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="space-y-4 p-5 rounded-2xl bg-white/5 border border-white/10"
-                            >
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label className="text-gray-300 text-sm">Token Name</Label>
-                                  <Input
-                                    value={customToken.name}
-                                    onChange={(e) => setCustomToken({ ...customToken, name: e.target.value })}
-                                    placeholder="e.g. My Quest Token"
-                                    className="bg-white/5 border-white/10 text-white"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-gray-300 text-sm">Symbol</Label>
-                                  <Input
-                                    value={customToken.symbol}
-                                    onChange={(e) => setCustomToken({ ...customToken, symbol: e.target.value.toUpperCase() })}
-                                    placeholder="e.g. MQT"
-                                    maxLength={10}
-                                    className="bg-white/5 border-white/10 text-white uppercase"
-                                  />
-                                </div>
-                              </div>
+                          <div className="space-y-3">
+                            <Label className="text-white text-sm font-bold flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4 text-green-400" />
+                              Proof-of-Action Required
+                            </Label>
+                            <div className="grid grid-cols-3 gap-3">
+                              {['none', 'ai_photo', 'social_post'].map((p) => (
+                                <button
+                                  key={p}
+                                  type="button"
+                                  onClick={() => setQuestData({ ...questData, proofType: p as any })}
+                                  className={`py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${questData.proofType === p ? 'bg-green-500 border-green-400 text-black' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`}
+                                >
+                                  {p.replace('_', ' ')}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Token Selection */}
+                      <div className="space-y-4 pt-4">
+                        <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                          <PlusCircle className="w-4 h-4 text-violet-500" />
+                          Reward Token
+                        </Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setTokenType("kyra")}
+                            className={`p-4 rounded-xl border-2 transition-all text-left ${tokenType === "kyra"
+                              ? "border-violet-500 bg-violet-500/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20"
+                              }`}
+                          >
+                            <div className="font-bold text-white">KYRA Token</div>
+                            <div className="text-sm text-gray-400">Use platform token</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTokenType("custom")}
+                            className={`p-4 rounded-xl border-2 transition-all text-left ${tokenType === "custom"
+                              ? "border-violet-500 bg-violet-500/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20"
+                              }`}
+                          >
+                            <div className="font-bold text-white">Custom Token</div>
+                            <div className="text-sm text-gray-400">Launch your own token</div>
+                          </button>
+                        </div>
+
+                        {/* Custom Token Form */}
+                        {tokenType === "custom" && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-4 p-5 rounded-2xl bg-white/5 border border-white/10"
+                          >
+                            <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-gray-300 text-sm">Total Supply</Label>
+                                <Label className="text-gray-300 text-sm">Token Name</Label>
                                 <Input
-                                  type="number"
-                                  value={customToken.totalSupply}
-                                  onChange={(e) => setCustomToken({ ...customToken, totalSupply: e.target.value })}
-                                  placeholder="1000000"
+                                  value={customToken.name}
+                                  onChange={(e) => setCustomToken({ ...customToken, name: e.target.value })}
+                                  placeholder="e.g. My Quest Token"
                                   className="bg-white/5 border-white/10 text-white"
                                 />
-                                <p className="text-xs text-gray-500">All tokens will be minted to your wallet</p>
                               </div>
-                            </motion.div>
-                          )}
-                        </div>
+                              <div className="space-y-2">
+                                <Label className="text-gray-300 text-sm">Symbol</Label>
+                                <Input
+                                  value={customToken.symbol}
+                                  onChange={(e) => setCustomToken({ ...customToken, symbol: e.target.value.toUpperCase() })}
+                                  placeholder="e.g. MQT"
+                                  maxLength={10}
+                                  className="bg-white/5 border-white/10 text-white uppercase"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-gray-300 text-sm">Total Supply</Label>
+                              <Input
+                                type="number"
+                                value={customToken.totalSupply}
+                                onChange={(e) => setCustomToken({ ...customToken, totalSupply: e.target.value })}
+                                placeholder="1000000"
+                                className="bg-white/5 border-white/10 text-white"
+                              />
+                              <p className="text-xs text-gray-500">All tokens will be minted to your wallet</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
 
-                        {/* Budget Summary Card */}
-                        <div className="p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-gray-400 text-sm font-medium">Total Budget Required</span>
-                            <Shield className="w-4 h-4 text-violet-500" />
-                          </div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-extrabold text-white">
-                              {(Number(questData.maxClaims) * Number(questData.rewardAmount)).toLocaleString()}
-                            </span>
-                            <span className="text-violet-500 font-bold">
-                              {tokenType === "custom" ? (customToken.symbol || "TOKEN") : "KYRA"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-2">
-                            {tokenType === "custom"
-                              ? "Your token will be created when you launch the quest"
-                              : "Fund the quest vault after launching"
-                            }
-                          </p>
+                      {/* Budget Summary Card */}
+                      <div className="p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-gray-400 text-sm font-medium">Total Budget Required</span>
+                          <Shield className="w-4 h-4 text-violet-500" />
                         </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-extrabold text-white">
+                            {(Number(questData.maxClaims) * Number(questData.rewardAmount)).toLocaleString()}
+                          </span>
+                          <span className="text-violet-500 font-bold">
+                            {tokenType === "custom" ? (customToken.symbol || "TOKEN") : "KYRA"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {tokenType === "custom"
+                            ? "Your token will be created when you launch the quest"
+                            : "Fund the quest vault after launching"
+                          }
+                        </p>
                       </div>
                     </div>
                   </motion.div>

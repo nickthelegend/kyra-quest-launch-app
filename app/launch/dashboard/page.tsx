@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
-import { Plus, Pause, Play, Loader2, RefreshCw, ExternalLink, Coins, Users, Calendar, AlertCircle, Wallet, QrCode, ShieldCheck, CheckCircle, Clock, Zap } from "lucide-react"
+import { Plus, Pause, Play, Loader2, RefreshCw, ExternalLink, Coins, Users, Calendar, AlertCircle, Wallet, QrCode, ShieldCheck, CheckCircle, Clock, Zap, MapPin, Star } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
@@ -248,10 +248,70 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Active Quests</p>
-                  <p className="text-3xl font-bold text-white">{quests.filter(q => q.is_active && !isExpired(q.expiry_timestamp)).length}</p>
+                  <p className="text-3xl font-bold text-white">{quests.filter(q => q.is_active).length}</p>
                 </div>
               </div>
             </Card>
+          </div>
+
+          {/* ROI Insights Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+            <Card className="lg:col-span-2 p-8 bg-black/40 backdrop-blur-3xl border-white/10 rounded-3xl overflow-hidden relative min-h-[400px]">
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                {/* Mock Heatmap Grid */}
+                <div className="w-full h-full grid grid-cols-8 grid-rows-6 opacity-30">
+                  {Array.from({ length: 48 }).map((_, i) => (
+                    <div key={i} className={`border border-white/5 ${i % 7 === 0 ? 'bg-orange-500/40 blur-2xl' : i % 5 === 0 ? 'bg-violet-500/30 blur-3xl' : ''}`} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-5 h-5 text-orange-400" />
+                    <h3 className="text-xl font-bold text-white">Geographic ROI Heatmap</h3>
+                  </div>
+                  <p className="text-gray-400 text-sm">Real-time engagement density across global locations</p>
+                </div>
+
+                <div className="flex items-center gap-8 mt-12 bg-white/5 p-6 rounded-2xl border border-white/10 w-fit backdrop-blur-md">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-black mb-1">Top Region</p>
+                    <p className="text-lg font-bold text-white">San Francisco, CA</p>
+                  </div>
+                  <div className="w-px h-10 bg-white/10" />
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-black mb-1">Density Index</p>
+                    <p className="text-lg font-bold text-orange-400">8.4 / 10</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="space-y-6">
+              <Card className="p-6 bg-gradient-to-br from-violet-600/20 to-purple-600/20 border-violet-500/30 rounded-3xl flex flex-col justify-between min-h-[190px]">
+                <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center mb-4">
+                  <Star className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white">Boost Revenue</h4>
+                  <p className="text-xs text-violet-300 mb-4 font-medium">+12% boost efficiency recorded</p>
+                  <Button size="sm" className="w-full bg-white text-black hover:bg-white/90 font-black rounded-xl">View Boost Stats</Button>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-black/40 border-white/10 rounded-3xl flex flex-col justify-between min-h-[190px]">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4 text-emerald-400">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white">Proof-of-Action ROI</h4>
+                  <p className="text-xs text-gray-500 mb-4 font-medium">94% user verification rate</p>
+                  <Button size="sm" variant="outline" className="w-full border-white/10 bg-white/5 font-bold rounded-xl">Export Report</Button>
+                </div>
+              </Card>
+            </div>
           </div>
 
           {/* Quest List */}

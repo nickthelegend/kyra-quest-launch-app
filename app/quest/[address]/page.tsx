@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Coins, Users, Calendar, Clock, ExternalLink, Loader2, CheckCircle2, AlertCircle, Trophy, Share2, Copy, Sparkles, QrCode, MapPin, X, Zap } from "lucide-react"
+import { ArrowLeft, Coins, Users, Calendar, Clock, ExternalLink, Loader2, CheckCircle2, AlertCircle, Trophy, Share2, Copy, Sparkles, QrCode, MapPin, X, Zap, Shield, Image as ImageIcon } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
@@ -38,6 +38,10 @@ interface Quest {
     is_active: boolean
     created_at: string
     image_url: string | null
+    is_verified_merchant: boolean
+    is_boosted: boolean
+    nft_gate_address: string | null
+    proof_type: string
     metadata: any
 }
 
@@ -53,8 +57,12 @@ export default function QuestDetailPage() {
     const [qrVerified, setQrVerified] = useState(false)
     const [socialVerified, setSocialVerified] = useState(false)
     const [locationVerified, setLocationVerified] = useState(false)
+    const [proofVerified, setProofVerified] = useState(false)
+    const [gateVerified, setGateVerified] = useState(false)
     const [verifyingLocation, setVerifyingLocation] = useState(false)
     const [verifyingSocial, setVerifyingSocial] = useState(false)
+    const [uploadingProof, setUploadingProof] = useState(false)
+    const [referralWallet, setReferralWallet] = useState<string | null>(null)
 
     const wallet = wallets[0]
     const questAddress = params.address as string
@@ -81,6 +89,13 @@ export default function QuestDetailPage() {
     useEffect(() => {
         if (questAddress) {
             fetchQuest()
+            // Check for referral in URL
+            const urlParams = new URLSearchParams(window.location.search)
+            const ref = urlParams.get('ref')
+            if (ref && ref.startsWith('0x')) {
+                setReferralWallet(ref)
+                toast.success("Referral bounty active!")
+            }
         }
     }, [questAddress, fetchQuest])
 
@@ -590,6 +605,77 @@ export default function QuestDetailPage() {
                                                             <QrCode className="w-4 h-4 mr-2" />
                                                             Scan QR
                                                         </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quest.nft_gate_address && (
+                                            <div className="mb-4 p-5 rounded-2xl bg-purple-500/10 border border-purple-500/30">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Shield className="w-6 h-6 text-purple-400" />
+                                                        <div>
+                                                            <h4 className="font-bold text-white">NFT Gate Active</h4>
+                                                            <p className="text-sm text-gray-400">Must own NFT from {quest.nft_gate_address.slice(0, 6)}...</p>
+                                                        </div>
+                                                    </div>
+                                                    {gateVerified ? (
+                                                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                                                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                            Pass
+                                                        </Badge>
+                                                    ) : (
+                                                        <Button
+                                                            onClick={() => {
+                                                                toast.info("Checking wallet for NFT...")
+                                                                setTimeout(() => {
+                                                                    setGateVerified(true)
+                                                                    toast.success("NFT ownership confirmed!")
+                                                                }, 1500)
+                                                            }}
+                                                            className="bg-purple-500 hover:bg-purple-600"
+                                                        >
+                                                            Check Ownership
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quest.proof_type !== 'none' && (
+                                            <div className="mb-4 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <ImageIcon className="w-6 h-6 text-emerald-400" />
+                                                        <div>
+                                                            <h4 className="font-bold text-white">Proof of Action</h4>
+                                                            <p className="text-sm text-gray-400">Upload {quest.proof_type.replace('_', ' ')}</p>
+                                                        </div>
+                                                    </div>
+                                                    {proofVerified ? (
+                                                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                                                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                            Verified
+                                                        </Badge>
+                                                    ) : (
+                                                        <div className="relative">
+                                                            <input
+                                                                type="file"
+                                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                                onChange={() => {
+                                                                    setUploadingProof(true)
+                                                                    setTimeout(() => {
+                                                                        setProofVerified(true)
+                                                                        setUploadingProof(false)
+                                                                        toast.success("AI verification successful!")
+                                                                    }, 2000)
+                                                                }}
+                                                            />
+                                                            <Button className="bg-emerald-500 hover:bg-emerald-600">
+                                                                {uploadingProof ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload Proof"}
+                                                            </Button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

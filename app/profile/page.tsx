@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
-import { Trophy, Coins, Star, Clock, CheckCircle2, Loader2, Wallet, Sparkles, ArrowRight, Package } from "lucide-react"
+import { Wallet, Sparkles, Star, Coins, Trophy, ExternalLink, Package, BadgeCheck, Zap, MapPin, QrCode, Clock, CheckCircle2, Loader2, ArrowRight } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
@@ -230,6 +230,44 @@ export default function ProfilePage() {
                                                 <span className="text-blue-400 font-bold">{claims.length} Quests</span>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Skills Section (Soulbound CV) */}
+                            <div className="mt-8 pt-8 border-t border-white/5">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-violet-400 mb-4 flex items-center gap-2">
+                                    <BadgeCheck className="w-4 h-4" />
+                                    Soulbound Skills
+                                </h3>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div className={`p-4 rounded-2xl border transition-all ${claims.filter(c => c.quest?.quest_type === 'social').length > 0 ? 'bg-blue-500/10 border-blue-500/30 font-bold text-blue-400' : 'bg-white/5 border-white/5 text-gray-600'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Zap className="w-4 h-4" />
+                                            <span className="text-[10px] uppercase font-black">Social Architect</span>
+                                        </div>
+                                        <div className="text-xl font-black">{claims.filter(c => c.quest?.quest_type === 'social').length}</div>
+                                    </div>
+                                    <div className={`p-4 rounded-2xl border transition-all ${claims.filter(c => c.quest?.quest_type === 'map').length > 0 ? 'bg-orange-500/10 border-orange-500/30 font-bold text-orange-400' : 'bg-white/5 border-white/5 text-gray-600'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <MapPin className="w-4 h-4" />
+                                            <span className="text-[10px] uppercase font-black">Geo-Explorer</span>
+                                        </div>
+                                        <div className="text-xl font-black">{claims.filter(c => c.quest?.quest_type === 'map').length}</div>
+                                    </div>
+                                    <div className={`p-4 rounded-2xl border transition-all ${claims.filter(c => c.quest?.quest_type === 'qr').length > 0 ? 'bg-purple-500/10 border-purple-500/30 font-bold text-purple-400' : 'bg-white/5 border-white/5 text-gray-600'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <QrCode className="w-4 h-4" />
+                                            <span className="text-[10px] uppercase font-black">Scan Master</span>
+                                        </div>
+                                        <div className="text-xl font-black">{claims.filter(c => c.quest?.quest_type === 'qr').length}</div>
+                                    </div>
+                                    <div className={`p-4 rounded-2xl border transition-all ${claims.length >= 5 ? 'bg-emerald-500/10 border-emerald-500/30 font-bold text-emerald-400' : 'bg-white/5 border-white/5 text-gray-600'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Trophy className="w-4 h-4" />
+                                            <span className="text-[10px] uppercase font-black">Quest Legacy</span>
+                                        </div>
+                                        <div className="text-xl font-black">{claims.length > 5 ? 'Elite' : 'Novice'}</div>
                                     </div>
                                 </div>
                             </div>

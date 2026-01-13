@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Search, Loader2, Coins, Users, Calendar, ArrowRight, Sparkles, Filter, Trophy, ShieldCheck } from "lucide-react"
+import { Search, Loader2, Coins, Users, Calendar, ArrowRight, Sparkles, Filter, Trophy, ShieldCheck, Shield } from "lucide-react"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
@@ -28,6 +28,8 @@ interface Quest {
     created_at: string
     image_url: string | null
     is_verified_merchant: boolean
+    is_boosted: boolean
+    nft_gate_address: string | null
 }
 
 export default function QuestsPage() {
@@ -67,6 +69,7 @@ export default function QuestsPage() {
                 .from("quests")
                 .select("*")
                 .eq("is_active", true)
+                .order("is_boosted", { ascending: false })
                 .order("created_at", { ascending: false })
 
             if (error) throw error
@@ -319,13 +322,31 @@ export default function QuestsPage() {
                                                             <Badge className={`${typeBadge.color} border backdrop-blur-md font-bold uppercase tracking-wider text-[10px]`}>
                                                                 {typeBadge.label}
                                                             </Badge>
-                                                            {quest.is_verified_merchant && (
-                                                                <div className="bg-blue-500/80 backdrop-blur-md text-white p-1 rounded-full border border-blue-400/50 shadow-lg shadow-blue-500/20">
-                                                                    <ShieldCheck className="w-3 h-3" />
-                                                                </div>
-                                                            )}
                                                         </div>
-
+                                                        {quest.is_verified_merchant && (
+                                                            <div className="absolute top-4 left-4 z-20">
+                                                                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/20 backdrop-blur-md border border-blue-500/30 rounded-full">
+                                                                    <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Verified</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {quest.is_boosted && (
+                                                            <div className="absolute top-4 right-4 z-20">
+                                                                <div className="flex items-center gap-1.5 px-3 py-1 bg-yellow-500 text-black rounded-full shadow-lg shadow-yellow-500/20 animate-pulse">
+                                                                    <Sparkles className="w-3.5 h-3.5" />
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider">Boosted</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {quest.nft_gate_address && (
+                                                            <div className="absolute bottom-4 left-4 z-20">
+                                                                <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-500/20 backdrop-blur-md border border-purple-500/30 rounded-full">
+                                                                    <Shield className="w-3.5 h-3.5 text-purple-400" />
+                                                                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-wider">NFT Gated</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                         <div className="absolute top-4 right-4">
                                                             {expired ? (
                                                                 <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 backdrop-blur-md">

@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title Quest
  * @dev A quest contract that holds and distributes ERC20 tokens or ERC721 NFTs as rewards
- * Simplified version without signature verification for simple quests
  */
 contract Quest is Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
@@ -19,24 +18,30 @@ contract Quest is Ownable, ReentrancyGuard, IERC721Receiver {
     enum RewardType { ERC20, ERC721 }
     enum QuestType { SIMPLE, QR, MAP }
     
-    // Quest configuration
-    string public name;
-    string public description;
-    RewardType public rewardType;
-    QuestType public questType;
-    address public rewardToken; // ERC20 or ERC721 address
-    uint256 public rewardAmount; // Amount per claim (for ERC20)
-    uint256 public maxClaims;
+    struct QuestConfig {
+        string name;
+        string description;
+        RewardType rewardType;
+        QuestType questType;
+        address rewardToken;
+        uint256 rewardAmount;
+        uint256 maxClaims;
+        uint64 expiryTimestamp;
+        bool isRecurring;
+        uint256 recurringInterval;
+    }
+
+    QuestConfig public config;
     uint256 public claimsMade;
-    uint64 public expiryTimestamp;
     bool public active;
     
     // NFT reward tracking
-    uint256[] public nftRewardIds; // Token IDs available for claiming
+    uint256[] public nftRewardIds;
     uint256 public nextNftIndex;
     
     // Claim tracking
     mapping(address => bool) public hasClaimed;
+    mapping(address => uint256) public lastClaimTime;
     
     // Events
     event QuestCreated(address indexed creator, string name, RewardType rewardType);
@@ -46,128 +51,96 @@ contract Quest is Ownable, ReentrancyGuard, IERC721Receiver {
     event NFTDeposited(uint256 tokenId);
     
     constructor(
-        string memory _name,
-        string memory _description,
-        RewardType _rewardType,
-        QuestType _questType,
-        address _rewardToken,
-        uint256 _rewardAmount,
-        uint256 _maxClaims,
-        uint64 _expiryTimestamp,
+        QuestConfig memory _config,
         address _creator
     ) Ownable(_creator) {
-        name = _name;
-        description = _description;
-        rewardType = _rewardType;
-        questType = _questType;
-        rewardToken = _rewardToken;
-        rewardAmount = _rewardAmount;
-        maxClaims = _maxClaims;
-        expiryTimestamp = _expiryTimestamp;
+        config = _config;
         active = true;
-        
-        emit QuestCreated(_creator, _name, _rewardType);
+        emit QuestCreated(_creator, _config.name, _config.rewardType);
     }
     
-    /**
-     * @dev Fund the quest with ERC20 tokens
-     */
     function fundWithTokens(uint256 amount) external {
-        require(rewardType == RewardType.ERC20, "Quest: Not an ERC20 quest");
-        IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), amount);
+        require(config.rewardType == RewardType.ERC20, "Quest: Not an ERC20 quest");
+        IERC20(config.rewardToken).safeTransferFrom(msg.sender, address(this), amount);
         emit QuestFunded(msg.sender, amount);
     }
     
-    /**
-     * @dev Deposit NFT rewards (must be called by NFT owner)
-     */
     function depositNFT(uint256 tokenId) external {
-        require(rewardType == RewardType.ERC721, "Quest: Not an NFT quest");
-        IERC721(rewardToken).safeTransferFrom(msg.sender, address(this), tokenId);
+        require(config.rewardType == RewardType.ERC721, "Quest: Not an NFT quest");
+        IERC721(config.rewardToken).safeTransferFrom(msg.sender, address(this), tokenId);
         nftRewardIds.push(tokenId);
         emit NFTDeposited(tokenId);
     }
-    
-    /**
-     * @dev Deposit multiple NFTs
-     */
+
     function depositNFTBatch(uint256[] calldata tokenIds) external {
-        require(rewardType == RewardType.ERC721, "Quest: Not an NFT quest");
+        require(config.rewardType == RewardType.ERC721, "Quest: Not an NFT quest");
         for (uint256 i = 0; i < tokenIds.length; i++) {
-            IERC721(rewardToken).safeTransferFrom(msg.sender, address(this), tokenIds[i]);
+            IERC721(config.rewardToken).safeTransferFrom(msg.sender, address(this), tokenIds[i]);
             nftRewardIds.push(tokenIds[i]);
             emit NFTDeposited(tokenIds[i]);
         }
     }
     
-    /**
-     * @dev Claim reward (Simple quest - no verification needed)
-     * For QR and MAP quests, additional verification will be added
-     */
     function claim() external nonReentrant {
         require(active, "Quest: Not active");
-        require(block.timestamp < expiryTimestamp, "Quest: Expired");
-        require(claimsMade < maxClaims, "Quest: Max claims reached");
-        require(!hasClaimed[msg.sender], "Quest: Already claimed");
+        require(block.timestamp < config.expiryTimestamp, "Quest: Expired");
+        require(claimsMade < config.maxClaims, "Quest: Max claims reached");
         
-        // For simple quests, allow direct claim
-        // QR and MAP quests would need additional verification here
-        require(questType == QuestType.SIMPLE, "Quest: Verification required");
+        if (config.isRecurring) {
+            require(block.timestamp >= lastClaimTime[msg.sender] + config.recurringInterval, "Quest: Still in cooldown");
+        } else {
+            require(!hasClaimed[msg.sender], "Quest: Already claimed");
+        }
+        
+        require(config.questType == QuestType.SIMPLE, "Quest: Verification required");
         
         _processClaim(msg.sender);
     }
     
-    /**
-     * @dev Claim with verification code (for QR quests)
-     */
     function claimWithCode(bytes32 verificationCode) external nonReentrant {
         require(active, "Quest: Not active");
-        require(block.timestamp < expiryTimestamp, "Quest: Expired");
-        require(claimsMade < maxClaims, "Quest: Max claims reached");
-        require(!hasClaimed[msg.sender], "Quest: Already claimed");
-        require(questType == QuestType.QR, "Quest: Not a QR quest");
+        require(block.timestamp < config.expiryTimestamp, "Quest: Expired");
+        require(claimsMade < config.maxClaims, "Quest: Max claims reached");
         
-        // Simple verification: hash of (quest address + expected code) matches
-        // In production, this could be more sophisticated
+        if (config.isRecurring) {
+            require(block.timestamp >= lastClaimTime[msg.sender] + config.recurringInterval, "Quest: Still in cooldown");
+        } else {
+            require(!hasClaimed[msg.sender], "Quest: Already claimed");
+        }
+        
+        require(config.questType == QuestType.QR, "Quest: Not a QR quest");
+        
         bytes32 expectedHash = keccak256(abi.encodePacked(address(this), "KYRA"));
         require(verificationCode == expectedHash, "Quest: Invalid verification code");
         
         _processClaim(msg.sender);
     }
     
-    /**
-     * @dev Internal function to process the claim
-     */
     function _processClaim(address user) internal {
         hasClaimed[user] = true;
+        lastClaimTime[user] = block.timestamp;
         claimsMade++;
         
-        if (rewardType == RewardType.ERC20) {
-            // Transfer ERC20 tokens
+        if (config.rewardType == RewardType.ERC20) {
             require(
-                IERC20(rewardToken).balanceOf(address(this)) >= rewardAmount,
+                IERC20(config.rewardToken).balanceOf(address(this)) >= config.rewardAmount,
                 "Quest: Insufficient reward balance"
             );
-            IERC20(rewardToken).safeTransfer(user, rewardAmount);
-            emit RewardClaimed(user, rewardAmount, 0);
+            IERC20(config.rewardToken).safeTransfer(user, config.rewardAmount);
+            emit RewardClaimed(user, config.rewardAmount, 0);
         } else {
-            // Transfer next available NFT
             require(nextNftIndex < nftRewardIds.length, "Quest: No NFTs available");
             uint256 tokenId = nftRewardIds[nextNftIndex];
             nextNftIndex++;
-            IERC721(rewardToken).safeTransferFrom(address(this), user, tokenId);
+            IERC721(config.rewardToken).safeTransferFrom(address(this), user, tokenId);
             emit RewardClaimed(user, 1, tokenId);
         }
         
-        // Auto-close if max claims reached
-        if (claimsMade >= maxClaims) {
+        if (claimsMade >= config.maxClaims) {
             _close("Max claims reached");
         }
     }
     
-    /**
-     * @dev Close the quest manually (only owner)
-     */
     function close() external onlyOwner {
         _close("Manual close by owner");
     }
@@ -177,72 +150,34 @@ contract Quest is Ownable, ReentrancyGuard, IERC721Receiver {
         emit QuestClosed(reason);
     }
     
-    /**
-     * @dev Withdraw remaining rewards (only owner, only when closed or expired)
-     */
     function withdrawRemaining() external onlyOwner {
-        require(!active || block.timestamp >= expiryTimestamp, "Quest: Still active");
+        require(!active || block.timestamp >= config.expiryTimestamp, "Quest: Still active");
         
-        if (rewardType == RewardType.ERC20) {
-            uint256 balance = IERC20(rewardToken).balanceOf(address(this));
+        if (config.rewardType == RewardType.ERC20) {
+            uint256 balance = IERC20(config.rewardToken).balanceOf(address(this));
             if (balance > 0) {
-                IERC20(rewardToken).safeTransfer(owner(), balance);
+                IERC20(config.rewardToken).safeTransfer(owner(), balance);
             }
         } else {
-            // Return remaining NFTs
             for (uint256 i = nextNftIndex; i < nftRewardIds.length; i++) {
-                IERC721(rewardToken).safeTransferFrom(address(this), owner(), nftRewardIds[i]);
+                IERC721(config.rewardToken).safeTransferFrom(address(this), owner(), nftRewardIds[i]);
             }
         }
     }
     
-    /**
-     * @dev Get available rewards count
-     */
     function getAvailableRewards() external view returns (uint256) {
-        if (rewardType == RewardType.ERC20) {
-            return IERC20(rewardToken).balanceOf(address(this)) / rewardAmount;
+        if (config.rewardType == RewardType.ERC20) {
+            return IERC20(config.rewardToken).balanceOf(address(this)) / config.rewardAmount;
         } else {
             return nftRewardIds.length - nextNftIndex;
         }
     }
     
-    /**
-     * @dev Get quest info
-     */
-    function getQuestInfo() external view returns (
-        string memory _name,
-        string memory _description,
-        RewardType _rewardType,
-        QuestType _questType,
-        address _rewardToken,
-        uint256 _rewardAmount,
-        uint256 _maxClaims,
-        uint256 _claimsMade,
-        uint64 _expiryTimestamp,
-        bool _active
-    ) {
-        return (
-            name,
-            description,
-            rewardType,
-            questType,
-            rewardToken,
-            rewardAmount,
-            maxClaims,
-            claimsMade,
-            expiryTimestamp,
-            active
-        );
+    function getQuestConfig() external view returns (QuestConfig memory) {
+        return config;
     }
-    
-    // Required for receiving NFTs
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return this.onERC721Received.selector;
     }
 }

@@ -47,6 +47,12 @@ export function Navigation() {
             <Link href="/map" className="text-muted-foreground hover:text-foreground transition-colors">
               Map
             </Link>
+            <Link href="/feed" className="text-muted-foreground hover:text-foreground transition-colors">
+              Feed
+            </Link>
+            <Link href="/shop" className="text-muted-foreground hover:text-foreground transition-colors">
+              Shop
+            </Link>
             <Link href="/quests" className="relative flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <Trophy className="w-4 h-4" />
               Quests
@@ -130,6 +136,12 @@ export function Navigation() {
               </Link>
               <Link href="/map" className="text-muted-foreground hover:text-foreground transition-colors">
                 Map
+              </Link>
+              <Link href="/feed" className="text-muted-foreground hover:text-foreground transition-colors">
+                Feed
+              </Link>
+              <Link href="/shop" className="text-muted-foreground hover:text-foreground transition-colors">
+                Shop
               </Link>
               <Link href="/quests" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <Trophy className="w-4 h-4" />

@@ -37,23 +37,12 @@ contract QuestFactory {
      * @dev Create a new ERC20 token reward quest
      */
     function createTokenQuest(
-        string calldata _name,
-        string calldata _description,
-        Quest.QuestType _questType,
-        address _rewardToken,
-        uint256 _rewardAmount,
-        uint256 _maxClaims,
-        uint64 _expiryTimestamp
+        Quest.QuestConfig calldata _config
     ) external returns (address) {
+        require(_config.rewardType == Quest.RewardType.ERC20, "Factory: Must be ERC20");
+        
         Quest newQuest = new Quest(
-            _name,
-            _description,
-            Quest.RewardType.ERC20,
-            _questType,
-            _rewardToken,
-            _rewardAmount,
-            _maxClaims,
-            _expiryTimestamp,
+            _config,
             msg.sender
         );
         
@@ -64,57 +53,25 @@ contract QuestFactory {
         emit QuestCreated(
             questAddress,
             msg.sender,
-            _name,
+            _config.name,
             Quest.RewardType.ERC20,
-            _questType,
-            _rewardToken
+            _config.questType,
+            _config.rewardToken
         );
         
         return questAddress;
     }
     
     /**
-     * @dev Create a new quest with KYRA token rewards (convenience function)
-     */
-    function createKYRAQuest(
-        string calldata _name,
-        string calldata _description,
-        Quest.QuestType _questType,
-        uint256 _rewardAmount,
-        uint256 _maxClaims,
-        uint64 _expiryTimestamp
-    ) external returns (address) {
-        return this.createTokenQuest(
-            _name,
-            _description,
-            _questType,
-            kyraToken,
-            _rewardAmount,
-            _maxClaims,
-            _expiryTimestamp
-        );
-    }
-    
-    /**
      * @dev Create a new NFT reward quest
      */
     function createNFTQuest(
-        string calldata _name,
-        string calldata _description,
-        Quest.QuestType _questType,
-        address _nftContract,
-        uint256 _maxClaims,
-        uint64 _expiryTimestamp
+        Quest.QuestConfig calldata _config
     ) external returns (address) {
+        require(_config.rewardType == Quest.RewardType.ERC721, "Factory: Must be ERC721");
+
         Quest newQuest = new Quest(
-            _name,
-            _description,
-            Quest.RewardType.ERC721,
-            _questType,
-            _nftContract,
-            1, // Each claim gets 1 NFT
-            _maxClaims,
-            _expiryTimestamp,
+            _config,
             msg.sender
         );
         
@@ -125,10 +82,10 @@ contract QuestFactory {
         emit QuestCreated(
             questAddress,
             msg.sender,
-            _name,
+            _config.name,
             Quest.RewardType.ERC721,
-            _questType,
-            _nftContract
+            _config.questType,
+            _config.rewardToken
         );
         
         return questAddress;

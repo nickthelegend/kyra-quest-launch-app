@@ -40,6 +40,8 @@ interface Quest {
     image_url: string | null
     is_verified_merchant: boolean
     is_boosted: boolean
+    is_recurring: boolean
+    recurring_interval: number | null
     nft_gate_address: string | null
     proof_type: string
     metadata: any
@@ -109,25 +111,57 @@ export default function QuestDetailPage() {
         if (!wallet?.address || !quest) return
 
         try {
-            const { data } = await supabase
+            // For recurring quests, we check if they claimed recently
+            let query = supabase
                 .from("quest_claims")
-                .select("id")
+                .select("created_at")
                 .eq("quest_id", quest.id)
                 .eq("player_wallet", wallet.address.toLowerCase())
-                .single()
+                .order("created_at", { ascending: false })
+                .limit(1)
 
-            if (data) {
-                setHasClaimed(true)
-                return
+            const { data } = await query
+
+            if (data && data.length > 0) {
+                if (quest.is_recurring) {
+                    const lastClaim = new Date(data[0].created_at).getTime()
+                    const now = new Date().getTime()
+                    const intervalMs = (quest.recurring_interval || 86400) * 1000
+
+                    if (now - lastClaim < intervalMs) {
+                        setHasClaimed(true)
+                        return
+                    } else {
+                        setHasClaimed(false)
+                        return
+                    }
+                } else {
+                    setHasClaimed(true)
+                    return
+                }
             }
 
-            // Also check on-chain
+            // Also check on-chain for the basic state
             try {
                 const ethereumProvider = await wallet.getEthereumProvider()
                 const provider = new ethers.BrowserProvider(ethereumProvider)
                 const questContract = new ethers.Contract(quest.address, QuestABI, provider)
-                const claimed = await questContract.hasClaimed(wallet.address)
-                setHasClaimed(claimed)
+
+                if (quest.is_recurring) {
+                    const lastClaimTime = await questContract.lastClaimTime(wallet.address)
+                    const lastClaim = Number(lastClaimTime) * 1000
+                    const now = new Date().getTime()
+                    const intervalMs = (quest.recurring_interval || 86400) * 1000
+
+                    if (lastClaim > 0 && now - lastClaim < intervalMs) {
+                        setHasClaimed(true)
+                    } else {
+                        setHasClaimed(false)
+                    }
+                } else {
+                    const claimed = await questContract.hasClaimed(wallet.address)
+                    setHasClaimed(claimed)
+                }
             } catch {
                 setHasClaimed(false)
             }

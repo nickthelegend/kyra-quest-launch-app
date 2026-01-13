@@ -137,135 +137,144 @@ export default function FeedPage() {
     }
 
     return (
-        <div className="h-screen bg-black overflow-hidden relative font-sans">
+        <div className="h-screen bg-black overflow-hidden relative font-sans flex items-center justify-center">
             <Navigation />
 
-            {/* Floating Header */}
-            <div className="absolute top-24 left-0 right-0 z-50 flex justify-center gap-6 pointer-events-none">
-                <button className="text-white/60 font-black text-sm uppercase tracking-widest px-4 py-2 border-b-2 border-transparent pointer-events-auto">Following</button>
-                <button className="text-white font-black text-sm uppercase tracking-widest px-4 py-2 border-b-2 border-violet-500 pointer-events-auto">For You</button>
+            {/* Background Glow */}
+            <div className="absolute inset-0 bg-[#0a0a0f]">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[120px]" />
             </div>
 
-            <div
-                ref={containerRef}
-                onScroll={handleScroll}
-                className="h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar"
-            >
-                {loading ? (
-                    <div className="h-full flex items-center justify-center bg-[#0a0a0f]">
-                        <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
-                    </div>
-                ) : (
-                    posts.map((post, idx) => (
-                        <div key={post.id} className="h-screen w-full snap-start relative flex items-center justify-center bg-zinc-900">
-                            {/* Video Background */}
-                            <video
-                                src={post.video_url}
-                                className="h-full w-full object-cover"
-                                autoPlay={idx === activeIndex}
-                                loop
-                                muted
-                                playsInline
-                            />
+            {/* Mobile View Container */}
+            <div className="relative w-full max-w-md h-[calc(100vh-20px)] md:h-[85vh] md:rounded-[40px] border-x md:border border-white/10 overflow-hidden shadow-2xl bg-black z-10 flex flex-col mt-12 md:mt-20">
+                {/* Floating Header (Local to Container) */}
+                <div className="absolute top-6 left-0 right-0 z-50 flex justify-center gap-6">
+                    <button className="text-white/60 font-black text-xs uppercase tracking-widest px-4 py-2 border-b-2 border-transparent">Following</button>
+                    <button className="text-white font-black text-xs uppercase tracking-widest px-4 py-2 border-b-2 border-violet-500">For You</button>
+                </div>
 
-                            {/* Overlay Gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
-
-                            {/* Side Actions */}
-                            <div className="absolute right-4 bottom-32 flex flex-col gap-6 z-20">
-                                <div className="flex flex-col items-center gap-1 group cursor-pointer">
-                                    <div className="w-14 h-14 rounded-full border-2 border-violet-500 p-0.5 bg-black/20 backdrop-blur-md flex items-center justify-center overflow-hidden">
-                                        <User className="w-8 h-8 text-white" />
-                                    </div>
-                                    <div className="absolute -bottom-2 bg-violet-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <PlusCircle className="w-3 h-3 text-white" />
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col items-center gap-1">
-                                    <button className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center group hover:bg-red-500/20 transition-all">
-                                        <Heart className="w-7 h-7 text-white group-hover:text-red-500 transition-colors" />
-                                    </button>
-                                    <span className="text-white text-xs font-bold">{post.likes}</span>
-                                </div>
-
-                                <div className="flex flex-col items-center gap-1">
-                                    <button className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
-                                        <MessageCircle className="w-7 h-7 text-white" />
-                                    </button>
-                                    <span className="text-white text-xs font-bold">42</span>
-                                </div>
-
-                                <div className="flex flex-col items-center gap-1">
-                                    <button className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
-                                        <Share2 className="w-7 h-7 text-white" />
-                                    </button>
-                                </div>
-
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                    className="w-14 h-14 rounded-full bg-black/60 backdrop-blur-md border-2 border-white/10 flex items-center justify-center"
-                                >
-                                    <Music className="w-6 h-6 text-violet-400" />
-                                </motion.div>
-                            </div>
-
-                            {/* Bottom Content */}
-                            <div className="absolute bottom-8 left-4 right-20 z-20">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="px-4 py-1.5 rounded-full bg-violet-500/20 backdrop-blur-md border border-violet-500/30 flex items-center gap-2">
-                                        <Trophy className="w-4 h-4 text-violet-400" />
-                                        <span className="text-white text-xs font-black uppercase tracking-wider">Quest Achievement</span>
-                                    </div>
-                                    {idx === 0 && (
-                                        <div className="px-4 py-1.5 rounded-full bg-yellow-500/20 backdrop-blur-md border border-yellow-500/30 flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-yellow-400 text-xs font-black uppercase tracking-wider">Minted as NFT</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <h3 className="text-white font-black text-xl mb-2 flex items-center gap-2">
-                                    @{post.owner_wallet.slice(0, 6)}...{post.owner_wallet.slice(-4)}
-                                    <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <Zap className="w-2.5 h-2.5 text-white" />
-                                    </div>
-                                </h3>
-
-                                <p className="text-white/90 text-sm mb-4 leading-relaxed line-clamp-2">
-                                    {post.caption}
-                                </p>
-
-                                <div className="flex items-center gap-2 text-white text-xs font-bold">
-                                    <Music className="w-3 h-3" />
-                                    <span>Original Sound - Quest Beats Vol. 1</span>
-                                </div>
-                            </div>
+                <div
+                    ref={containerRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar"
+                >
+                    {loading ? (
+                        <div className="h-full flex items-center justify-center bg-[#0a0a0f]">
+                            <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
                         </div>
-                    ))
+                    ) : (
+                        posts.map((post, idx) => (
+                            <div key={post.id} className="h-full w-full snap-start relative flex items-center justify-center bg-zinc-900 overflow-hidden min-h-[calc(100vh-80px)] md:min-h-[85vh]">
+                                {/* Video Background */}
+                                <video
+                                    src={post.video_url}
+                                    className="h-full w-full object-cover"
+                                    autoPlay={idx === activeIndex}
+                                    loop
+                                    muted
+                                    playsInline
+                                />
+
+                                {/* Overlay Gradient */}
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
+
+                                {/* Side Actions */}
+                                <div className="absolute right-3 bottom-24 flex flex-col gap-5 z-20">
+                                    <div className="flex flex-col items-center gap-1 group cursor-pointer">
+                                        <div className="w-11 h-11 rounded-full border border-violet-500 p-0.5 bg-black/20 backdrop-blur-md flex items-center justify-center overflow-hidden">
+                                            <User className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div className="absolute -bottom-1 bg-violet-500 rounded-full p-0.5">
+                                            <PlusCircle className="w-2.5 h-2.5 text-white" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-0.5">
+                                        <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center group hover:bg-red-500/20 transition-all">
+                                            <Heart className="w-6 h-6 text-white group-hover:text-red-500 transition-colors" />
+                                        </button>
+                                        <span className="text-white text-[10px] font-bold">{post.likes}</span>
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-0.5">
+                                        <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
+                                            <MessageCircle className="w-6 h-6 text-white" />
+                                        </button>
+                                        <span className="text-white text-[10px] font-bold">42</span>
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-0.5">
+                                        <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
+                                            <Share2 className="w-6 h-6 text-white" />
+                                        </button>
+                                    </div>
+
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                        className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
+                                    >
+                                        <Music className="w-5 h-5 text-violet-400" />
+                                    </motion.div>
+                                </div>
+
+                                {/* Bottom Content */}
+                                <div className="absolute bottom-6 left-3 right-16 z-20">
+                                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                                        <div className="px-3 py-1 rounded-full bg-violet-500/20 backdrop-blur-md border border-violet-500/30 flex items-center gap-1.5">
+                                            <Trophy className="w-3 h-3 text-violet-400" />
+                                            <span className="text-white text-[8px] font-black uppercase tracking-wider">Achievement</span>
+                                        </div>
+                                        {idx === 0 && (
+                                            <div className="px-3 py-1 rounded-full bg-yellow-500/20 backdrop-blur-md border border-yellow-500/30 flex items-center gap-1.5">
+                                                <Sparkles className="w-3 h-3 text-yellow-400" />
+                                                <span className="text-yellow-400 text-[8px] font-black uppercase tracking-wider">NFT</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <h3 className="text-white font-black text-base mb-1 flex items-center gap-1.5">
+                                        @{post.owner_wallet.slice(0, 6)}...{post.owner_wallet.slice(-4)}
+                                        <div className="w-3.5 h-3.5 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <Zap className="w-2 h-2 text-white" />
+                                        </div>
+                                    </h3>
+
+                                    <p className="text-white/90 text-xs mb-3 leading-relaxed line-clamp-2">
+                                        {post.caption}
+                                    </p>
+
+                                    <div className="flex items-center gap-1.5 text-white/60 text-[10px] font-medium">
+                                        <Music className="w-2.5 h-2.5" />
+                                        <span className="truncate">Original Sound - Quest Beats Vol. 1</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Container Floating Create Button */}
+                {!loading && (
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+                        <Button
+                            onClick={() => {
+                                if (!authenticated) {
+                                    login()
+                                } else {
+                                    fetchuserQuests()
+                                    setIsUploadModalOpen(true)
+                                }
+                            }}
+                            className="rounded-full h-11 px-6 bg-white text-black hover:bg-white/90 font-black shadow-2xl flex items-center gap-2 border-2 border-black/10 text-sm"
+                        >
+                            <PlusCircle className="w-5 h-5" />
+                            Upload Adventure
+                        </Button>
+                    </div>
                 )}
             </div>
 
-            {/* Floating Create Button */}
-            {!loading && (
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
-                    <Button
-                        onClick={() => {
-                            if (!authenticated) {
-                                login()
-                            } else {
-                                fetchuserQuests()
-                                setIsUploadModalOpen(true)
-                            }
-                        }}
-                        className="rounded-full h-14 px-8 bg-white text-black hover:bg-white/90 font-black shadow-2xl flex items-center gap-2 border-4 border-black/20"
-                    >
-                        <PlusCircle className="w-6 h-6" />
-                        Upload Adventure
-                    </Button>
-                </div>
-            )}
 
             {/* Upload Modal */}
             <AnimatePresence>

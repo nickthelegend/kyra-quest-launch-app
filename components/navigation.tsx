@@ -41,19 +41,16 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <Link href="/launch" className="text-muted-foreground hover:text-foreground transition-colors">
-              Home
-            </Link>
-            <Link href="/map" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/map" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Map
             </Link>
-            <Link href="/feed" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/feed" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Feed
             </Link>
-            <Link href="/shop" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/shop" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Shop
             </Link>
-            <Link href="/quests" className="relative flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/quests" className="relative flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium">
               <Trophy className="w-4 h-4" />
               Quests
               {questCount > 0 && (
@@ -62,28 +59,41 @@ export function Navigation() {
                 </span>
               )}
             </Link>
-            <Link href="/tokens" className="text-muted-foreground hover:text-foreground transition-colors">
-              Tokens
-            </Link>
-            <Link href="/leaderboard" className="text-muted-foreground hover:text-foreground transition-colors">
-              Leaderboard
-            </Link>
-            <Link href="/download" className="text-muted-foreground hover:text-foreground transition-colors">
-              Download
-            </Link>
+
             {authenticated && (
-              <Link href="/profile" className="text-muted-foreground hover:text-foreground transition-colors">
-                Profile
-              </Link>
-            )}
-            <Link href="/help" className="text-muted-foreground hover:text-foreground transition-colors">
-              Help
-            </Link>
-            {authenticated && (
-              <Link href="/launch/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/launch/dashboard" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
                 Dashboard
               </Link>
             )}
+
+            {/* More Dropdown */}
+            <div className="relative group">
+              <button className="flex items-center gap-1 text-muted-foreground group-hover:text-foreground transition-colors font-medium">
+                More
+                <svg className="w-4 h-4 transition-transform group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <div className="absolute top-full right-0 mt-2 w-48 py-2 bg-[#12121a] border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60]">
+                <Link href="/tokens" className="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                  Tokens
+                </Link>
+                <Link href="/leaderboard" className="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                  Leaderboard
+                </Link>
+                <Link href="/download" className="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                  Download
+                </Link>
+                {authenticated && (
+                  <Link href="/profile" className="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                    Profile
+                  </Link>
+                )}
+                <Link href="/help" className="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                  Help
+                </Link>
+              </div>
+            </div>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -109,14 +119,13 @@ export function Navigation() {
                     {isSwitching ? "Switching..." : "Switch to Mantle"}
                   </Button>
                 )}
-                <span className="text-sm text-muted-foreground">{user?.email?.address || "Connected"}</span>
-                <Button onClick={logout} variant="outline" size="sm">
+                <Button onClick={logout} variant="outline" size="sm" className="rounded-full px-4 border-white/10 hover:bg-white/5">
                   Logout
                 </Button>
               </>
             ) : (
-              <Button onClick={login} className="glow-hover bg-primary hover:bg-secondary">
-                Login
+              <Button onClick={login} className="rounded-full px-6 bg-gradient-to-r from-violet-500 to-purple-500 hover:shadow-lg hover:shadow-violet-500/20 transition-all font-bold">
+                Connect Wallet
               </Button>
             )}
           </div>

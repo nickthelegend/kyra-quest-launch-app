@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Coins, Users, Calendar, Clock, ExternalLink, Loader2, CheckCircle2, AlertCircle, Trophy, Share2, Copy, Sparkles, QrCode, MapPin, X } from "lucide-react"
+import { ArrowLeft, Coins, Users, Calendar, Clock, ExternalLink, Loader2, CheckCircle2, AlertCircle, Trophy, Share2, Copy, Sparkles, QrCode, MapPin, X, Zap } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
@@ -51,8 +51,10 @@ export default function QuestDetailPage() {
     const [hasClaimed, setHasClaimed] = useState(false)
     const [showQRScanner, setShowQRScanner] = useState(false)
     const [qrVerified, setQrVerified] = useState(false)
+    const [socialVerified, setSocialVerified] = useState(false)
     const [locationVerified, setLocationVerified] = useState(false)
     const [verifyingLocation, setVerifyingLocation] = useState(false)
+    const [verifyingSocial, setVerifyingSocial] = useState(false)
 
     const wallet = wallets[0]
     const questAddress = params.address as string
@@ -206,6 +208,8 @@ export default function QuestDetailPage() {
         switch (quest.quest_type) {
             case "qr":
                 return qrVerified
+            case "social":
+                return socialVerified
             case "map":
                 return locationVerified
             case "verification":
@@ -456,10 +460,27 @@ export default function QuestDetailPage() {
                         animate={{ opacity: 1, y: 0 }}
                     >
                         <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl">
-                            {/* Header gradient */}
-                            <div className={`h-2 bg-gradient-to-r ${typeBadge.gradient}`} />
+                            {/* Quest Banner Image */}
+                            <div className="relative h-64 md:h-80 w-full overflow-hidden">
+                                {quest.image_url ? (
+                                    <img
+                                        src={quest.image_url}
+                                        alt={quest.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className={`w-full h-full bg-gradient-to-br ${typeBadge.gradient} opacity-20`} />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent opacity-80" />
 
-                            <div className="p-8 md:p-12">
+                                <div className="absolute bottom-8 left-8 md:left-12">
+                                    <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+                                        {quest.name}
+                                    </h1>
+                                </div>
+                            </div>
+
+                            <div className="p-8 md:p-12 pt-6">
                                 {/* Badges */}
                                 <div className="flex items-center gap-3 flex-wrap mb-6">
                                     <Badge className={`${typeBadge.color} border`}>
@@ -483,11 +504,6 @@ export default function QuestDetailPage() {
                                         </Badge>
                                     )}
                                 </div>
-
-                                {/* Title */}
-                                <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
-                                    {quest.name}
-                                </h1>
 
                                 {/* Description */}
                                 {quest.description && (
@@ -574,6 +590,54 @@ export default function QuestDetailPage() {
                                                             <QrCode className="w-4 h-4 mr-2" />
                                                             Scan QR
                                                         </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quest.quest_type === "social" && (
+                                            <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-400/30">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Zap className="w-6 h-6 text-blue-400" />
+                                                        <div>
+                                                            <h4 className="font-bold text-white">Social Verification</h4>
+                                                            <p className="text-sm text-gray-400">Complete the social task to verify</p>
+                                                        </div>
+                                                    </div>
+                                                    {socialVerified ? (
+                                                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                                                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                            Verified
+                                                        </Badge>
+                                                    ) : (
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                onClick={() => window.open('https://x.com/KyraQuest', '_blank')}
+                                                                variant="outline"
+                                                                className="border-blue-500/30 hover:bg-blue-500/10"
+                                                            >
+                                                                Perform Task
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => {
+                                                                    setVerifyingSocial(true)
+                                                                    setTimeout(() => {
+                                                                        setSocialVerified(true)
+                                                                        setVerifyingSocial(false)
+                                                                        toast.success("Social action verified!")
+                                                                    }, 2000)
+                                                                }}
+                                                                disabled={verifyingSocial}
+                                                                className="bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/20"
+                                                            >
+                                                                {verifyingSocial ? (
+                                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                                ) : (
+                                                                    "Verify"
+                                                                )}
+                                                            </Button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

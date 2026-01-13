@@ -6,12 +6,13 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
-import { Plus, Pause, Play, StopCircle, Loader2, RefreshCw, ExternalLink, Coins, Users, Calendar, AlertCircle, Wallet } from "lucide-react"
+import { Plus, Pause, Play, Loader2, RefreshCw, ExternalLink, Coins, Users, Calendar, AlertCircle, Wallet, QrCode, ShieldCheck, CheckCircle, Clock, Zap } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
 import { motion, AnimatePresence } from "framer-motion"
 import { FundQuestModal } from "@/components/fund-quest-modal"
+import { QRCodeModal } from "@/components/qr-code-modal"
 
 interface Quest {
   id: string
@@ -36,6 +37,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fundingQuest, setFundingQuest] = useState<Quest | null>(null)
+  const [qrQuest, setQrQuest] = useState<Quest | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
+  const [merchantName, setMerchantName] = useState("")
 
   const wallet = wallets[0]
 
@@ -79,6 +83,18 @@ export default function DashboardPage() {
         setQuests(data2 || [])
       } else {
         setQuests(data)
+      }
+
+      // Fetch merchant profile
+      const { data: profile } = await supabase
+        .from("merchant_profiles")
+        .select("*")
+        .eq("wallet_address", wallet.address.toLowerCase())
+        .single()
+
+      if (profile) {
+        setIsVerified(profile.is_verified)
+        setMerchantName(profile.business_name || "")
       }
     } catch (err: any) {
       console.error("Error fetching quests:", err)
@@ -176,43 +192,33 @@ export default function DashboardPage() {
 
       <div className="relative z-10 pt-28 pb-20 px-4">
         <div className="container mx-auto max-w-6xl">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10"
-          >
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">
-                Merchant <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Dashboard</span>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+                Merchant Dashboard
               </h1>
-              <p className="text-gray-400 text-lg">Manage your quests and track rewards distribution</p>
+              <p className="text-gray-400 mt-2 text-lg">Manage yours quests and track rewards on Mantle</p>
             </div>
             <div className="flex items-center gap-3">
               <Button
-                onClick={fetchQuests}
                 variant="outline"
-                className="gap-2 rounded-xl bg-transparent border-white/10 hover:bg-white/5"
+                onClick={fetchQuests}
+                className="bg-white/5 border-white/10 hover:bg-white/10 text-white gap-2 transition-all rounded-xl h-12"
               >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                Sync
               </Button>
               <Link href="/launch/create">
-                <Button className="gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 shadow-lg shadow-violet-500/25">
-                  <Plus className="w-4 h-4" />
+                <Button className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-violet-500/20 flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
                   Create Quest
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </div>
 
           {/* Stats Overview */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <Card className="p-6 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border-white/10 rounded-2xl">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
@@ -246,7 +252,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Quest List */}
           <AnimatePresence mode="wait">
@@ -388,6 +394,17 @@ export default function DashboardPage() {
                               <Wallet className="w-4 h-4" />
                               Fund
                             </Button>
+                            {quest.quest_type === "qr" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setQrQuest(quest)}
+                                className="gap-2 bg-transparent border-white/10 hover:bg-white/5"
+                              >
+                                <QrCode className="w-4 h-4" />
+                                QR
+                              </Button>
+                            )}
                             <Link href={`/quest/${quest.address}`}>
                               <Button size="sm" variant="outline" className="gap-2 bg-transparent border-white/10 hover:bg-white/5">
                                 <ExternalLink className="w-4 h-4" />
@@ -418,23 +435,37 @@ export default function DashboardPage() {
       </div>
 
       {/* Fund Quest Modal */}
-      {fundingQuest && wallet && (
-        <FundQuestModal
-          isOpen={!!fundingQuest}
-          onClose={() => setFundingQuest(null)}
-          questAddress={fundingQuest.address}
-          questName={fundingQuest.name}
-          rewardToken={fundingQuest.reward_token}
-          rewardPerClaim={fundingQuest.reward_per_claim}
-          maxClaims={fundingQuest.max_claims}
-          claimsMade={fundingQuest.claims_made}
-          wallet={wallet}
-          onFunded={() => {
-            setFundingQuest(null)
-            fetchQuests()
-          }}
-        />
-      )}
-    </div>
+      {
+        fundingQuest && wallet && (
+          <FundQuestModal
+            isOpen={!!fundingQuest}
+            onClose={() => setFundingQuest(null)}
+            questAddress={fundingQuest.address}
+            questName={fundingQuest.name}
+            rewardToken={fundingQuest.reward_token}
+            rewardPerClaim={fundingQuest.reward_per_claim}
+            maxClaims={fundingQuest.max_claims}
+            claimsMade={fundingQuest.claims_made}
+            wallet={wallet}
+            onFunded={() => {
+              setFundingQuest(null)
+              fetchQuests()
+            }}
+          />
+        )
+      }
+
+      {/* QR Code Modal */}
+      {
+        qrQuest && (
+          <QRCodeModal
+            isOpen={!!qrQuest}
+            onClose={() => setQrQuest(null)}
+            questAddress={qrQuest.address}
+            questName={qrQuest.name}
+          />
+        )
+      }
+    </div >
   )
 }

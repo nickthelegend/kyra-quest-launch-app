@@ -8,19 +8,22 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useState } from "react"
-import { Map, QrCode, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Rocket, Coins, Calendar, Users, Sparkles, Shield, Zap, Trophy, Star, PlusCircle } from "lucide-react"
+import { Map, QrCode, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Rocket, Coins, Calendar, Users, Sparkles, Shield, Zap, Trophy, Star, PlusCircle, Image as ImageIcon, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ethers } from "ethers"
 import { QUEST_FACTORY_ADDRESS, KYRA_TOKEN_ADDRESS, TOKEN_FACTORY_ADDRESS } from "@/lib/constants"
 import QuestFactoryArtifact from "@/contracts/abis/QuestFactory.json"
 import TokenFactoryArtifact from "@/contracts/abis/TokenFactory.json"
+import QuestArtifact from "@/contracts/abis/Quest.json"
 const QuestFactoryABI = QuestFactoryArtifact.abi
 const TokenFactoryABI = TokenFactoryArtifact.abi
+const QuestABI = QuestArtifact.abi
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { uploadToPinata } from "@/lib/pinata"
 
-type QuestType = "map" | "qr" | "verification" | null
+type QuestType = "map" | "qr" | "social" | "verification" | null
 
 export default function CreateQuestPage() {
   const router = useRouter()
@@ -30,6 +33,8 @@ export default function CreateQuestPage() {
   const [questType, setQuestType] = useState<QuestType>(null)
   const [loading, setLoading] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [questImageUrl, setQuestImageUrl] = useState<string>("")
 
   // Token type: 'kyra' for KYRA token, 'custom' for new token
   const [tokenType, setTokenType] = useState<"kyra" | "custom">("kyra")
@@ -169,7 +174,7 @@ export default function CreateQuestPage() {
       const maxClaims = BigInt(questData.maxClaims)
       const expiryTimestamp = BigInt(Math.floor(new Date(questData.expiry).getTime() / 1000))
 
-      // Map quest type to enum value (0=SIMPLE, 1=QR, 2=MAP)
+      // Map quest type to enum value (0=SIMPLE/VERIFICATION, 1=QR, 2=MAP)
       const questTypeEnum = questType === "qr" ? 1 : questType === "map" ? 2 : 0
 
       console.log("Creating quest on-chain...", {
@@ -214,6 +219,30 @@ export default function CreateQuestPage() {
       const questAddress = event.args.questAddress
       console.log("New Quest Address:", questAddress)
 
+      // Step 3: Auto-fund if custom token
+      if (tokenType === "custom") {
+        try {
+          toast.info("Auto-funding your quest with custom tokens...")
+          const tokenContract = new ethers.Contract(rewardTokenAddress, TokenFactoryABI, signer) // We can reuse the ABI as it has ERC20 methods
+          const questContract = new ethers.Contract(questAddress, QuestABI, signer)
+
+          const totalRewardAmount = rewardPerClaim * maxClaims
+
+          toast.info("Approving tokens...")
+          const approveTx = await tokenContract.approve(questAddress, totalRewardAmount)
+          await approveTx.wait()
+
+          toast.info("Depositing tokens into quest...")
+          const fundTx = await questContract.fundWithTokens(totalRewardAmount)
+          await fundTx.wait()
+
+          toast.success("Quest auto-funded successfully!")
+        } catch (fundErr) {
+          console.error("Auto-fund error:", fundErr)
+          toast.warning("Quest created but auto-funding failed. You can fund it manually from the dashboard.")
+        }
+      }
+
       // Save to Supabase
       const { error: sbError } = await supabase.from("quests").insert({
         address: questAddress,
@@ -224,7 +253,9 @@ export default function CreateQuestPage() {
         reward_per_claim: rewardPerClaim.toString(),
         max_claims: Number(maxClaims),
         expiry_timestamp: Number(expiryTimestamp),
-        creator: wallet.address.toLowerCase(),
+        is_active: true,
+        creator_wallet: wallet.address.toLowerCase(),
+        image_url: questImageUrl || null,
         metadata: tokenType === "custom" ? {
           custom_token: true,
           token_name: customToken.name,
@@ -267,12 +298,20 @@ export default function CreateQuestPage() {
       features: ["Scannable codes", "Event-based", "Instant rewards"]
     },
     {
+      id: "social" as const,
+      title: "Social Quest",
+      description: "Viral campaigns driven by social media actions",
+      icon: Zap,
+      gradient: "from-blue-400 to-blue-600",
+      features: ["X/Twitter following", "Post engagement", "Community growth"]
+    },
+    {
       id: "verification" as const,
       title: "Identity Quest",
-      description: "Social and identity-based verification rewards",
+      description: "Identity-based verification for community rewards",
       icon: CheckCircle2,
       gradient: "from-emerald-500 to-cyan-500",
-      features: ["Social proof", "KYC verified", "Sybil resistant"]
+      features: ["Verified human", "SBT compatible", "Sybil resistant"]
     }
   ]
 
@@ -447,6 +486,74 @@ export default function CreateQuestPage() {
                             placeholder="What do players need to do to complete this quest?"
                             className="bg-white/5 border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 focus:border-violet-500 focus:ring-violet-500/20 transition-all min-h-[140px]"
                           />
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-violet-500" />
+                            Quest Banner Image
+                          </Label>
+                          <div className="relative group">
+                            <div className={`
+                              relative h-40 w-full rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center p-4 overflow-hidden
+                              ${questImageUrl ? 'border-violet-500 bg-violet-500/5' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'}
+                            `}>
+                              {questImageUrl ? (
+                                <>
+                                  <img src={questImageUrl} alt="Quest preview" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                                  <div className="relative z-10 text-center">
+                                    <CheckCircle2 className="w-8 h-8 text-violet-400 mx-auto mb-2" />
+                                    <p className="text-violet-400 font-bold text-sm">Image Uploaded!</p>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setQuestImageUrl("")}
+                                      className="mt-2 text-xs text-white/40 hover:text-white"
+                                    >
+                                      Change Image
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-center">
+                                  {uploadingImage ? (
+                                    <div className="space-y-2">
+                                      <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto" />
+                                      <p className="text-gray-500 text-sm">Uploading to IPFS...</p>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mx-auto mb-3">
+                                        <Upload className="w-6 h-6 text-violet-500" />
+                                      </div>
+                                      <p className="text-sm font-medium text-white mb-1">Click to upload image</p>
+                                      <p className="text-xs text-gray-500">PNG, JPG or WebP (Max 5MB)</p>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) {
+                                            try {
+                                              setUploadingImage(true)
+                                              const url = await uploadToPinata(file)
+                                              setQuestImageUrl(url)
+                                              toast.success("Image uploaded to IPFS!")
+                                            } catch (err) {
+                                              toast.error("Failed to upload image")
+                                            } finally {
+                                              setUploadingImage(false)
+                                            }
+                                          }
+                                        }}
+                                      />
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
 

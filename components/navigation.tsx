@@ -44,8 +44,8 @@ export function Navigation() {
             <Link href="/launch" className="text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
-            <Link href="/launch/merchant" className="text-muted-foreground hover:text-foreground transition-colors">
-              For Merchants
+            <Link href="/map" className="text-muted-foreground hover:text-foreground transition-colors">
+              Map
             </Link>
             <Link href="/quests" className="relative flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <Trophy className="w-4 h-4" />
@@ -56,6 +56,20 @@ export function Navigation() {
                 </span>
               )}
             </Link>
+            <Link href="/tokens" className="text-muted-foreground hover:text-foreground transition-colors">
+              Tokens
+            </Link>
+            <Link href="/leaderboard" className="text-muted-foreground hover:text-foreground transition-colors">
+              Leaderboard
+            </Link>
+            <Link href="/download" className="text-muted-foreground hover:text-foreground transition-colors">
+              Download
+            </Link>
+            {authenticated && (
+              <Link href="/profile" className="text-muted-foreground hover:text-foreground transition-colors">
+                Profile
+              </Link>
+            )}
             <Link href="/help" className="text-muted-foreground hover:text-foreground transition-colors">
               Help
             </Link>
@@ -114,8 +128,8 @@ export function Navigation() {
               <Link href="/launch" className="text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </Link>
-              <Link href="/launch/merchant" className="text-muted-foreground hover:text-foreground transition-colors">
-                For Merchants
+              <Link href="/map" className="text-muted-foreground hover:text-foreground transition-colors">
+                Map
               </Link>
               <Link href="/quests" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <Trophy className="w-4 h-4" />
@@ -126,16 +140,30 @@ export function Navigation() {
                   </span>
                 )}
               </Link>
+              <Link href="/tokens" className="text-muted-foreground hover:text-foreground transition-colors">
+                Tokens
+              </Link>
+              <Link href="/leaderboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                Leaderboard
+              </Link>
+              <Link href="/download" className="text-muted-foreground hover:text-foreground transition-colors">
+                Download
+              </Link>
               <Link href="/help" className="text-muted-foreground hover:text-foreground transition-colors">
                 Help
               </Link>
               {authenticated && (
-                <Link
-                  href="/launch/dashboard"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link href="/profile" className="text-muted-foreground hover:text-foreground transition-colors">
+                    Profile
+                  </Link>
+                  <Link
+                    href="/launch/dashboard"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                </>
               )}
               {authenticated && !isMantleSepolia && (
                 <Button

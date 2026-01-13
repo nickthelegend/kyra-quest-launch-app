@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Search, Loader2, Coins, Users, Calendar, ArrowRight, Sparkles, Filter, Trophy } from "lucide-react"
+import { Search, Loader2, Coins, Users, Calendar, ArrowRight, Sparkles, Filter, Trophy, ShieldCheck } from "lucide-react"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
@@ -26,6 +26,8 @@ interface Quest {
     creator: string
     is_active: boolean
     created_at: string
+    image_url: string | null
+    is_verified_merchant: boolean
 }
 
 export default function QuestsPage() {
@@ -90,6 +92,8 @@ export default function QuestsPage() {
                 return { label: "🗺️ Map Hunt", color: "bg-orange-500/20 text-orange-400 border-orange-500/30", gradient: "from-orange-500 to-red-500" }
             case "qr":
                 return { label: "📱 QR Scan", color: "bg-purple-500/20 text-purple-400 border-purple-500/30", gradient: "from-purple-500 to-pink-500" }
+            case "social":
+                return { label: "🐦 Social", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", gradient: "from-blue-400 to-blue-600" }
             case "verification":
             default:
                 return { label: "✓ Identity", color: "bg-violet-500/20 text-violet-400 border-violet-500/30", gradient: "from-violet-500 to-purple-500" }
@@ -231,6 +235,13 @@ export default function QuestsPage() {
                                 📱 QR
                             </Button>
                             <Button
+                                onClick={() => setTypeFilter("social")}
+                                variant={typeFilter === "social" ? "default" : "outline"}
+                                className={`rounded-xl ${typeFilter === "social" ? "bg-gradient-to-r from-blue-400 to-blue-600" : "bg-transparent border-white/10"}`}
+                            >
+                                🐦 Social
+                            </Button>
+                            <Button
                                 onClick={() => setTypeFilter("verification")}
                                 variant={typeFilter === "verification" ? "default" : "outline"}
                                 className={`rounded-xl ${typeFilter === "verification" ? "bg-gradient-to-r from-violet-500 to-purple-500" : "bg-transparent border-white/10"}`}
@@ -290,61 +301,84 @@ export default function QuestsPage() {
                                             transition={{ delay: index * 0.05 }}
                                         >
                                             <Link href={`/quest/${quest.address}`}>
-                                                <Card className="p-6 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border-white/10 hover:border-violet-500/30 transition-all rounded-2xl group cursor-pointer h-full">
-                                                    {/* Header */}
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <Badge className={`${typeBadge.color} border`}>
-                                                            {typeBadge.label}
-                                                        </Badge>
-                                                        {expired ? (
-                                                            <Badge className="bg-red-500/20 text-red-400 border border-red-500/30">
-                                                                Expired
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
-                                                                Active
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Title */}
-                                                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-violet-400 transition-colors">
-                                                        {quest.name}
-                                                    </h3>
-
-                                                    {/* Description */}
-                                                    {quest.description && (
-                                                        <p className="text-sm text-gray-400 mb-4 line-clamp-2">{quest.description}</p>
-                                                    )}
-
-                                                    {/* Reward */}
-                                                    <div className="flex items-baseline gap-2 mb-4">
-                                                        <span className="text-3xl font-bold text-white">{formatReward(quest.reward_per_claim)}</span>
-                                                        <span className="text-violet-400 font-medium">KYRA</span>
-                                                    </div>
-
-                                                    {/* Progress */}
-                                                    <div className="mb-4">
-                                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                                            <span>{quest.claims_made} claims</span>
-                                                            <span>{quest.max_claims} max</span>
-                                                        </div>
-                                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full bg-gradient-to-r ${typeBadge.gradient} rounded-full transition-all`}
-                                                                style={{ width: `${Math.min(progress, 100)}%` }}
+                                                <Card className="flex flex-col bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border-white/10 hover:border-violet-500/30 transition-all rounded-3xl group cursor-pointer h-full overflow-hidden">
+                                                    {/* Image Banner */}
+                                                    <div className="relative h-48 w-full overflow-hidden">
+                                                        {quest.image_url ? (
+                                                            <img
+                                                                src={quest.image_url}
+                                                                alt={quest.name}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                             />
+                                                        ) : (
+                                                            <div className={`w-full h-full bg-gradient-to-br ${typeBadge.gradient} opacity-20`} />
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent opacity-60" />
+
+                                                        <div className="absolute top-4 left-4 flex gap-2">
+                                                            <Badge className={`${typeBadge.color} border backdrop-blur-md font-bold uppercase tracking-wider text-[10px]`}>
+                                                                {typeBadge.label}
+                                                            </Badge>
+                                                            {quest.is_verified_merchant && (
+                                                                <div className="bg-blue-500/80 backdrop-blur-md text-white p-1 rounded-full border border-blue-400/50 shadow-lg shadow-blue-500/20">
+                                                                    <ShieldCheck className="w-3 h-3" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="absolute top-4 right-4">
+                                                            {expired ? (
+                                                                <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 backdrop-blur-md">
+                                                                    Expired
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 backdrop-blur-md">
+                                                                    Active
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </div>
 
-                                                    {/* Footer */}
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span className="text-gray-500">
-                                                            Expires {formatDate(quest.expiry_timestamp)}
-                                                        </span>
-                                                        <span className="text-violet-400 flex items-center gap-1 group-hover:gap-2 transition-all">
-                                                            View <ArrowRight className="w-4 h-4" />
-                                                        </span>
+                                                    <div className="p-6 flex-1 flex flex-col">
+                                                        {/* Title */}
+                                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-violet-400 transition-colors">
+                                                            {quest.name}
+                                                        </h3>
+
+                                                        {/* Description */}
+                                                        {quest.description && (
+                                                            <p className="text-sm text-gray-400 mb-4 line-clamp-2">{quest.description}</p>
+                                                        )}
+
+                                                        {/* Reward */}
+                                                        <div className="flex items-baseline gap-2 mb-4">
+                                                            <span className="text-3xl font-bold text-white">{formatReward(quest.reward_per_claim)}</span>
+                                                            <span className="text-violet-400 font-medium">KYRA</span>
+                                                        </div>
+
+                                                        {/* Progress */}
+                                                        <div className="mb-4">
+                                                            <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                                                <span>{quest.claims_made} claims</span>
+                                                                <span>{quest.max_claims} max</span>
+                                                            </div>
+                                                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full bg-gradient-to-r ${typeBadge.gradient} rounded-full transition-all`}
+                                                                    style={{ width: `${Math.min(progress, 100)}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Footer */}
+                                                        <div className="flex items-center justify-between text-sm mt-auto">
+                                                            <span className="text-gray-500">
+                                                                Expires {formatDate(quest.expiry_timestamp)}
+                                                            </span>
+                                                            <span className="text-violet-400 flex items-center gap-1 group-hover:gap-2 transition-all">
+                                                                View <ArrowRight className="w-4 h-4" />
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </Card>
                                             </Link>

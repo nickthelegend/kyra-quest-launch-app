@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useState } from "react"
-import { Map, QrCode, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Rocket, Coins, Calendar, Users, Sparkles, Shield, Zap, Trophy, Star } from "lucide-react"
+import { Map, QrCode, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Rocket, Coins, Calendar, Users, Sparkles, Shield, Zap, Trophy, Star, PlusCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ethers } from "ethers"
-import { QUEST_FACTORY_ADDRESS, KYRA_TOKEN_ADDRESS } from "@/lib/constants"
-import QuestFactoryABI from "@/contracts/abis/QuestFactory.json"
+import { QUEST_FACTORY_ADDRESS, KYRA_TOKEN_ADDRESS, TOKEN_FACTORY_ADDRESS } from "@/lib/constants"
+import QuestFactoryArtifact from "@/contracts/abis/QuestFactory.json"
+import TokenFactoryArtifact from "@/contracts/abis/TokenFactory.json"
+const QuestFactoryABI = QuestFactoryArtifact.abi
+const TokenFactoryABI = TokenFactoryArtifact.abi
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -27,6 +30,16 @@ export default function CreateQuestPage() {
   const [questType, setQuestType] = useState<QuestType>(null)
   const [loading, setLoading] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
+
+  // Token type: 'kyra' for KYRA token, 'custom' for new token
+  const [tokenType, setTokenType] = useState<"kyra" | "custom">("kyra")
+  const [customToken, setCustomToken] = useState({
+    name: "",
+    symbol: "",
+    totalSupply: "1000000",
+    image: "",
+  })
+  const [createdTokenAddress, setCreatedTokenAddress] = useState<string | null>(null)
 
   const [questData, setQuestData] = useState({
     name: "",
@@ -93,15 +106,88 @@ export default function CreateQuestPage() {
       const provider = new ethers.BrowserProvider(ethereumProvider)
       const signer = await provider.getSigner()
 
+      let rewardTokenAddress = KYRA_TOKEN_ADDRESS
+
+      // Step 1: Create custom token if selected
+      if (tokenType === "custom") {
+        if (!TOKEN_FACTORY_ADDRESS) {
+          throw new Error("Token Factory not deployed. Please deploy contracts first.")
+        }
+
+        toast.info("Creating your custom token...")
+        const tokenFactory = new ethers.Contract(TOKEN_FACTORY_ADDRESS, TokenFactoryABI, signer)
+
+        const totalSupply = ethers.parseUnits(customToken.totalSupply, 18)
+
+        const tokenTx = await tokenFactory.createToken(
+          customToken.name,
+          customToken.symbol,
+          18, // decimals
+          totalSupply,
+          customToken.image || ""
+        )
+
+        const tokenReceipt = await tokenTx.wait()
+
+        // Find TokenCreated event
+        const tokenEvent = tokenReceipt.logs
+          .map((log: any) => {
+            try {
+              return tokenFactory.interface.parseLog(log)
+            } catch {
+              return null
+            }
+          })
+          .find((e: any) => e && e.name === "TokenCreated")
+
+        if (!tokenEvent) throw new Error("TokenCreated event not found")
+
+        rewardTokenAddress = tokenEvent.args.tokenAddress
+        setCreatedTokenAddress(rewardTokenAddress)
+        toast.success(`Token ${customToken.symbol} created at ${rewardTokenAddress.slice(0, 10)}...`)
+
+        // Save token to Supabase (ignore errors, quest is more important)
+        try {
+          await supabase.from("tokens").insert({
+            address: rewardTokenAddress,
+            name: customToken.name,
+            symbol: customToken.symbol,
+            decimals: 18,
+            total_supply: totalSupply.toString(),
+            image: customToken.image || null,
+            creator: wallet.address.toLowerCase()
+          })
+        } catch (e) {
+          console.error("Failed to save token to database:", e)
+        }
+      }
+
+      // Step 2: Create the quest
       const factory = new ethers.Contract(QUEST_FACTORY_ADDRESS, QuestFactoryABI, signer)
 
       const rewardPerClaim = ethers.parseUnits(questData.rewardAmount, 18)
       const maxClaims = BigInt(questData.maxClaims)
       const expiryTimestamp = BigInt(Math.floor(new Date(questData.expiry).getTime() / 1000))
 
-      console.log("Creating quest on-chain...")
-      const tx = await factory.createQuest(
-        KYRA_TOKEN_ADDRESS,
+      // Map quest type to enum value (0=SIMPLE, 1=QR, 2=MAP)
+      const questTypeEnum = questType === "qr" ? 1 : questType === "map" ? 2 : 0
+
+      console.log("Creating quest on-chain...", {
+        name: questData.name,
+        description: questData.description,
+        questType: questTypeEnum,
+        rewardToken: rewardTokenAddress,
+        rewardPerClaim: rewardPerClaim.toString(),
+        maxClaims: maxClaims.toString(),
+        expiryTimestamp: expiryTimestamp.toString()
+      })
+
+      toast.info("Creating quest contract...")
+      const tx = await factory.createTokenQuest(
+        questData.name,
+        questData.description,
+        questTypeEnum,
+        rewardTokenAddress,
         rewardPerClaim,
         maxClaims,
         expiryTimestamp
@@ -128,29 +214,36 @@ export default function CreateQuestPage() {
       const questAddress = event.args.questAddress
       console.log("New Quest Address:", questAddress)
 
+      // Save to Supabase
       const { error: sbError } = await supabase.from("quests").insert({
         address: questAddress,
         name: questData.name,
         description: questData.description,
         quest_type: questType,
-        reward_token: KYRA_TOKEN_ADDRESS,
+        reward_token: rewardTokenAddress,
         reward_per_claim: rewardPerClaim.toString(),
         max_claims: Number(maxClaims),
         expiry_timestamp: Number(expiryTimestamp),
-        creator: wallet.address
+        creator: wallet.address.toLowerCase(),
+        metadata: tokenType === "custom" ? {
+          custom_token: true,
+          token_name: customToken.name,
+          token_symbol: customToken.symbol
+        } : null
       })
 
       if (sbError) {
         console.error("Supabase Error:", sbError)
         toast.warning("Quest created on-chain but failed to save to database. Address: " + questAddress)
       } else {
-        toast.success("Quest launched successfully!")
+        const tokenLabel = tokenType === "custom" ? customToken.symbol : "KYRA"
+        toast.success(`Quest launched successfully! Now fund it with ${tokenLabel} tokens.`)
       }
 
       router.push("/launch/dashboard")
     } catch (err: any) {
       console.error("Deployment error:", err)
-      toast.error(err.message || "Failed to launch quest")
+      toast.error(err.reason || err.message || "Failed to launch quest")
     } finally {
       setLoading(false)
     }
@@ -398,13 +491,88 @@ export default function CreateQuestPage() {
                                 type="number"
                                 value={questData.rewardAmount}
                                 onChange={(e) => setQuestData({ ...questData, rewardAmount: e.target.value })}
-                                className="bg-white/5 border-white/10 rounded-xl h-14 px-5 pr-16 text-white focus:border-violet-500 focus:ring-violet-500/20 transition-all"
+                                className="bg-white/5 border-white/10 rounded-xl h-14 px-5 pr-20 text-white focus:border-violet-500 focus:ring-violet-500/20 transition-all"
                               />
                               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-violet-500 font-bold text-sm">
-                                KYRA
+                                {tokenType === "custom" ? (customToken.symbol || "TOKEN") : "KYRA"}
                               </span>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Token Selection */}
+                        <div className="space-y-4 pt-4">
+                          <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                            <PlusCircle className="w-4 h-4 text-violet-500" />
+                            Reward Token
+                          </Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <button
+                              type="button"
+                              onClick={() => setTokenType("kyra")}
+                              className={`p-4 rounded-xl border-2 transition-all text-left ${tokenType === "kyra"
+                                ? "border-violet-500 bg-violet-500/10"
+                                : "border-white/10 bg-white/5 hover:border-white/20"
+                                }`}
+                            >
+                              <div className="font-bold text-white">KYRA Token</div>
+                              <div className="text-sm text-gray-400">Use platform token</div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTokenType("custom")}
+                              className={`p-4 rounded-xl border-2 transition-all text-left ${tokenType === "custom"
+                                ? "border-violet-500 bg-violet-500/10"
+                                : "border-white/10 bg-white/5 hover:border-white/20"
+                                }`}
+                            >
+                              <div className="font-bold text-white">Custom Token</div>
+                              <div className="text-sm text-gray-400">Launch your own token</div>
+                            </button>
+                          </div>
+
+                          {/* Custom Token Form */}
+                          {tokenType === "custom" && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="space-y-4 p-5 rounded-2xl bg-white/5 border border-white/10"
+                            >
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-gray-300 text-sm">Token Name</Label>
+                                  <Input
+                                    value={customToken.name}
+                                    onChange={(e) => setCustomToken({ ...customToken, name: e.target.value })}
+                                    placeholder="e.g. My Quest Token"
+                                    className="bg-white/5 border-white/10 text-white"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-gray-300 text-sm">Symbol</Label>
+                                  <Input
+                                    value={customToken.symbol}
+                                    onChange={(e) => setCustomToken({ ...customToken, symbol: e.target.value.toUpperCase() })}
+                                    placeholder="e.g. MQT"
+                                    maxLength={10}
+                                    className="bg-white/5 border-white/10 text-white uppercase"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-gray-300 text-sm">Total Supply</Label>
+                                <Input
+                                  type="number"
+                                  value={customToken.totalSupply}
+                                  onChange={(e) => setCustomToken({ ...customToken, totalSupply: e.target.value })}
+                                  placeholder="1000000"
+                                  className="bg-white/5 border-white/10 text-white"
+                                />
+                                <p className="text-xs text-gray-500">All tokens will be minted to your wallet</p>
+                              </div>
+                            </motion.div>
+                          )}
                         </div>
 
                         {/* Budget Summary Card */}
@@ -417,9 +585,16 @@ export default function CreateQuestPage() {
                             <span className="text-4xl font-extrabold text-white">
                               {(Number(questData.maxClaims) * Number(questData.rewardAmount)).toLocaleString()}
                             </span>
-                            <span className="text-violet-500 font-bold">KYRA</span>
+                            <span className="text-violet-500 font-bold">
+                              {tokenType === "custom" ? (customToken.symbol || "TOKEN") : "KYRA"}
+                            </span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">Fund the quest vault after launching</p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {tokenType === "custom"
+                              ? "Your token will be created when you launch the quest"
+                              : "Fund the quest vault after launching"
+                            }
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -455,7 +630,12 @@ export default function CreateQuestPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-5xl font-extrabold text-white">{questData.rewardAmount}</div>
-                          <div className="text-violet-500 font-bold">KYRA per claim</div>
+                          <div className="text-violet-500 font-bold">
+                            {tokenType === "custom" ? (customToken.symbol || "TOKEN") : "KYRA"} per claim
+                          </div>
+                          {tokenType === "custom" && (
+                            <div className="text-xs text-gray-400 mt-1">+ New token creation</div>
+                          )}
                         </div>
                       </div>
 

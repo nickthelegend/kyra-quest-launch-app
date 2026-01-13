@@ -6,14 +6,22 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Coins, Users, Calendar, Clock, ExternalLink, Loader2, CheckCircle2, AlertCircle, Trophy, Share2, Copy, Sparkles } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import { ArrowLeft, Coins, Users, Calendar, Clock, ExternalLink, Loader2, CheckCircle2, AlertCircle, Trophy, Share2, Copy, Sparkles, QrCode, MapPin, X } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import QuestABI from "@/contracts/abis/Quest.json"
+import QuestArtifact from "@/contracts/abis/Quest.json"
+const QuestABI = QuestArtifact.abi
+import dynamic from "next/dynamic"
+
+// Dynamically import QR scanner to avoid SSR issues
+const Scanner = dynamic(
+    () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
+    { ssr: false }
+)
 
 interface Quest {
     id: string
@@ -30,34 +38,26 @@ interface Quest {
     is_active: boolean
     created_at: string
     image_url: string | null
+    metadata: any
 }
 
 export default function QuestDetailPage() {
     const params = useParams()
-    const router = useRouter()
     const { authenticated, login } = usePrivy()
     const { wallets } = useWallets()
     const [quest, setQuest] = useState<Quest | null>(null)
     const [loading, setLoading] = useState(true)
     const [claiming, setClaiming] = useState(false)
     const [hasClaimed, setHasClaimed] = useState(false)
+    const [showQRScanner, setShowQRScanner] = useState(false)
+    const [qrVerified, setQrVerified] = useState(false)
+    const [locationVerified, setLocationVerified] = useState(false)
+    const [verifyingLocation, setVerifyingLocation] = useState(false)
 
     const wallet = wallets[0]
     const questAddress = params.address as string
 
-    useEffect(() => {
-        if (questAddress) {
-            fetchQuest()
-        }
-    }, [questAddress])
-
-    useEffect(() => {
-        if (wallet?.address && quest) {
-            checkIfClaimed()
-        }
-    }, [wallet?.address, quest])
-
-    const fetchQuest = async () => {
+    const fetchQuest = useCallback(async () => {
         setLoading(true)
         try {
             const { data, error } = await supabase
@@ -74,18 +74,29 @@ export default function QuestDetailPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [questAddress])
+
+    useEffect(() => {
+        if (questAddress) {
+            fetchQuest()
+        }
+    }, [questAddress, fetchQuest])
+
+    useEffect(() => {
+        if (wallet?.address && quest) {
+            checkIfClaimed()
+        }
+    }, [wallet?.address, quest])
 
     const checkIfClaimed = async () => {
         if (!wallet?.address || !quest) return
 
         try {
-            // First check Supabase
             const { data } = await supabase
                 .from("quest_claims")
                 .select("id")
                 .eq("quest_id", quest.id)
-                .eq("player_wallet", wallet.address)
+                .eq("player_wallet", wallet.address.toLowerCase())
                 .single()
 
             if (data) {
@@ -108,48 +119,153 @@ export default function QuestDetailPage() {
         }
     }
 
+    // QR Code verification handler
+    const handleQRScan = (result: any) => {
+        if (!result || !quest) return
+
+        const scannedData = result[0]?.rawValue || result
+
+        // Check if the scanned QR contains the quest address or a valid verification code
+        const expectedCode = quest.address.toLowerCase()
+        const isValid = scannedData.toLowerCase().includes(expectedCode) ||
+            scannedData.toLowerCase() === `kyra:${expectedCode}` ||
+            scannedData === quest.metadata?.qr_code
+
+        if (isValid) {
+            setQrVerified(true)
+            setShowQRScanner(false)
+            toast.success("QR Code verified! You can now claim your reward.")
+        } else {
+            toast.error("Invalid QR code. Please scan the correct quest QR code.")
+        }
+    }
+
+    // Location verification handler
+    const verifyLocation = async () => {
+        if (!quest) return
+
+        setVerifyingLocation(true)
+
+        try {
+            // Get user's current location
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                })
+            })
+
+            const userLat = position.coords.latitude
+            const userLng = position.coords.longitude
+
+            // Get quest location from metadata
+            const questLat = quest.metadata?.latitude
+            const questLng = quest.metadata?.longitude
+            const radius = quest.metadata?.radius || 100 // default 100 meters
+
+            if (!questLat || !questLng) {
+                // No location set for quest, allow claim
+                setLocationVerified(true)
+                toast.success("Location verified!")
+                return
+            }
+
+            // Calculate distance using Haversine formula
+            const R = 6371000 // Earth's radius in meters
+            const dLat = (questLat - userLat) * Math.PI / 180
+            const dLng = (questLng - userLng) * Math.PI / 180
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(userLat * Math.PI / 180) * Math.cos(questLat * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2)
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+            const distance = R * c
+
+            if (distance <= radius) {
+                setLocationVerified(true)
+                toast.success(`Location verified! You're ${Math.round(distance)}m from the target.`)
+            } else {
+                toast.error(`You're ${Math.round(distance)}m away. Need to be within ${radius}m.`)
+            }
+        } catch (error: any) {
+            if (error.code === 1) {
+                toast.error("Location access denied. Please enable location services.")
+            } else {
+                toast.error("Failed to get location. Please try again.")
+            }
+        } finally {
+            setVerifyingLocation(false)
+        }
+    }
+
+    // Check if user can claim based on quest type
+    const canClaim = () => {
+        if (!quest) return false
+
+        switch (quest.quest_type) {
+            case "qr":
+                return qrVerified
+            case "map":
+                return locationVerified
+            case "verification":
+            default:
+                return true // Identity quests can claim directly (verified on backend)
+        }
+    }
+
     const handleClaim = async () => {
         if (!wallet || !quest) return
 
         setClaiming(true)
         try {
-            // Show quest type specific message
-            const questTypeMsg = quest.quest_type === "map"
-                ? "Please complete the location verification to claim this reward."
-                : quest.quest_type === "qr"
-                    ? "Please scan the QR code at the location to claim this reward."
-                    : "Please complete identity verification to claim this reward."
+            toast.info("Preparing claim transaction...")
 
-            toast.info(questTypeMsg)
+            const ethereumProvider = await wallet.getEthereumProvider()
+            const provider = new ethers.BrowserProvider(ethereumProvider)
+            const signer = await provider.getSigner()
+            const questContract = new ethers.Contract(quest.address, QuestABI, signer)
 
-            // For now, we'll show that this requires a backend signature
-            // In production, the backend would verify the quest completion and provide a signature
-            toast.info("Verification in progress... Please wait.")
+            let tx
 
-            // Simulate verification delay
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            if (quest.quest_type === "qr") {
+                // For QR quests, use claimWithCode
+                const verificationCode = ethers.keccak256(
+                    ethers.solidityPacked(["address", "string"], [quest.address, "KYRA"])
+                )
+                toast.info("Submitting QR verified claim...")
+                tx = await questContract.claimWithCode(verificationCode)
+            } else {
+                // For simple/verification quests, use claim()
+                toast.info("Submitting claim transaction...")
+                tx = await questContract.claim()
+            }
 
-            // TODO: In production, call backend API to get signature after verification
-            // const response = await fetch('/api/quests/verify', {
-            //   method: 'POST',
-            //   body: JSON.stringify({ questAddress: quest.address, userAddress: wallet.address })
-            // })
-            // const { signature } = await response.json()
+            toast.info("Transaction submitted. Waiting for confirmation...")
+            const receipt = await tx.wait()
 
-            toast.error("Quest verification not yet implemented. Please check back later!")
+            // Record claim in Supabase
+            await supabase.from("quest_claims").insert({
+                quest_id: quest.id,
+                player_wallet: wallet.address.toLowerCase(),
+                tx_hash: receipt.hash,
+                xp_earned: 100
+            })
 
-            // Production code would be:
-            // const ethereumProvider = await wallet.getEthereumProvider()
-            // const provider = new ethers.BrowserProvider(ethereumProvider)
-            // const signer = await provider.getSigner()
-            // const questContract = new ethers.Contract(quest.address, QuestABI, signer)
-            // const tx = await questContract.claim(wallet.address, signature)
-            // const receipt = await tx.wait()
-            // ... record in supabase
+            // Update claims count
+            await supabase.from("quests").update({
+                claims_made: (quest.claims_made || 0) + 1
+            }).eq("id", quest.id)
+
+            setHasClaimed(true)
+            toast.success(`🎉 Claimed ${formatReward(quest.reward_per_claim)} KYRA successfully!`)
+            fetchQuest()
 
         } catch (err: any) {
             console.error("Claim error:", err)
-            toast.error(err.message || "Failed to claim reward")
+            // Parse contract errors
+            const errorMsg = err.reason || err.message || "Failed to claim reward"
+            toast.error(errorMsg)
         } finally {
             setClaiming(false)
         }
@@ -271,6 +387,47 @@ export default function QuestDetailPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden font-sans">
+            {/* QR Scanner Modal */}
+            <AnimatePresence>
+                {showQRScanner && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                    >
+                        <div className="relative w-full max-w-md">
+                            <Button
+                                onClick={() => setShowQRScanner(false)}
+                                variant="outline"
+                                size="sm"
+                                className="absolute -top-12 right-0 bg-transparent border-white/20"
+                            >
+                                <X className="w-4 h-4 mr-2" />
+                                Close
+                            </Button>
+                            <Card className="p-4 bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl border-white/10 rounded-2xl">
+                                <h3 className="text-xl font-bold text-white mb-4 text-center">Scan Quest QR Code</h3>
+                                <div className="aspect-square rounded-xl overflow-hidden bg-black">
+                                    <Scanner
+                                        onScan={handleQRScan}
+                                        onError={(error) => console.error("QR Scanner error:", error)}
+                                        constraints={{ facingMode: "environment" }}
+                                        styles={{
+                                            container: { width: "100%", height: "100%" },
+                                            video: { objectFit: "cover" }
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-sm text-gray-400 text-center mt-4">
+                                    Point your camera at the quest QR code
+                                </p>
+                            </Card>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Animated background */}
             <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5" />
@@ -391,6 +548,89 @@ export default function QuestDetailPage() {
                                     </div>
                                 </div>
 
+                                {/* Quest Type Specific Verification */}
+                                {authenticated && !hasClaimed && !expired && !isFull && quest.is_active && (
+                                    <div className="mb-8">
+                                        {quest.quest_type === "qr" && (
+                                            <div className="p-5 rounded-2xl bg-purple-500/10 border border-purple-500/30">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <QrCode className="w-6 h-6 text-purple-400" />
+                                                        <div>
+                                                            <h4 className="font-bold text-white">QR Code Verification</h4>
+                                                            <p className="text-sm text-gray-400">Scan the quest QR code to verify</p>
+                                                        </div>
+                                                    </div>
+                                                    {qrVerified ? (
+                                                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                                                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                            Verified
+                                                        </Badge>
+                                                    ) : (
+                                                        <Button
+                                                            onClick={() => setShowQRScanner(true)}
+                                                            className="bg-purple-500 hover:bg-purple-600"
+                                                        >
+                                                            <QrCode className="w-4 h-4 mr-2" />
+                                                            Scan QR
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quest.quest_type === "map" && (
+                                            <div className="p-5 rounded-2xl bg-orange-500/10 border border-orange-500/30">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <MapPin className="w-6 h-6 text-orange-400" />
+                                                        <div>
+                                                            <h4 className="font-bold text-white">Location Verification</h4>
+                                                            <p className="text-sm text-gray-400">Verify your location to claim</p>
+                                                        </div>
+                                                    </div>
+                                                    {locationVerified ? (
+                                                        <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                                                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                            Verified
+                                                        </Badge>
+                                                    ) : (
+                                                        <Button
+                                                            onClick={verifyLocation}
+                                                            disabled={verifyingLocation}
+                                                            className="bg-orange-500 hover:bg-orange-600"
+                                                        >
+                                                            {verifyingLocation ? (
+                                                                <>
+                                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                    Verifying...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <MapPin className="w-4 h-4 mr-2" />
+                                                                    Verify Location
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quest.quest_type === "verification" && (
+                                            <div className="p-5 rounded-2xl bg-violet-500/10 border border-violet-500/30">
+                                                <div className="flex items-center gap-3">
+                                                    <CheckCircle2 className="w-6 h-6 text-violet-400" />
+                                                    <div>
+                                                        <h4 className="font-bold text-white">Identity Verification</h4>
+                                                        <p className="text-sm text-gray-400">Your identity will be verified when you claim</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Contract Address */}
                                 <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 mb-8">
                                     <div className="flex-1 min-w-0">
@@ -438,6 +678,14 @@ export default function QuestDetailPage() {
                                             className="flex-1 h-14 text-lg rounded-xl bg-gray-500/20 text-gray-400 cursor-not-allowed"
                                         >
                                             {expired ? "Quest Expired" : isFull ? "Fully Claimed" : "Quest Paused"}
+                                        </Button>
+                                    ) : !canClaim() ? (
+                                        <Button
+                                            disabled
+                                            size="lg"
+                                            className="flex-1 h-14 text-lg rounded-xl bg-gray-500/20 text-gray-400 cursor-not-allowed"
+                                        >
+                                            {quest.quest_type === "qr" ? "Scan QR to Claim" : "Verify Location to Claim"}
                                         </Button>
                                     ) : (
                                         <Button

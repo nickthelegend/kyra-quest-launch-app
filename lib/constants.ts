@@ -9,8 +9,7 @@ export const PASSKEY_ASSOCIATED_DOMAIN = "https://dev.privy.example"
 export const BACKEND_URL = "https://spin-rewards-21.preview.emergentagent.com"
 export const GOOGLE_MAPS_API_KEY = "AIzaSyACn5LbHpFrDZrJ9pkg1OLc4EkntvcmNsA"
 
-// Contract Addresses (Mantle Sepolia)
-export const QUEST_FACTORY_ADDRESS = "0x214730188780a3A64fD24ede85f2724535772Ff0"
-export const KYRA_TOKEN_ADDRESS = "0x84373D817230268b2dE1d7727ca3c930293CCE51"
-export const PLAYER_REGISTRY_ADDRESS = "0xB159E0c8093081712c92e274DbFEa5A97A80cA30"
-
+// Contract Addresses (Mantle Sepolia) - Deployed 2026-01-13
+export const KYRA_TOKEN_ADDRESS = "0xB0411bbE3Fd3f7E92c19C1598826887ae704Ca28"
+export const TOKEN_FACTORY_ADDRESS = "0x1999707E124072274801144C45b003e66636c536"
+export const QUEST_FACTORY_ADDRESS = "0xCbA969647D93BA3DA9cB151B5cF31a54c8843731"

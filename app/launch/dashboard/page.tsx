@@ -6,11 +6,12 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import Link from "next/link"
-import { Plus, Pause, Play, StopCircle, Loader2, RefreshCw, ExternalLink, Coins, Users, Calendar, AlertCircle } from "lucide-react"
+import { Plus, Pause, Play, StopCircle, Loader2, RefreshCw, ExternalLink, Coins, Users, Calendar, AlertCircle, Wallet } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { ethers } from "ethers"
 import { motion, AnimatePresence } from "framer-motion"
+import { FundQuestModal } from "@/components/fund-quest-modal"
 
 interface Quest {
   id: string
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const [quests, setQuests] = useState<Quest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fundingQuest, setFundingQuest] = useState<Quest | null>(null)
 
   const wallet = wallets[0]
 
@@ -378,6 +380,14 @@ export default function DashboardPage() {
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              onClick={() => setFundingQuest(quest)}
+                              className="gap-2 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600"
+                            >
+                              <Wallet className="w-4 h-4" />
+                              Fund
+                            </Button>
                             <Link href={`/quest/${quest.address}`}>
                               <Button size="sm" variant="outline" className="gap-2 bg-transparent border-white/10 hover:bg-white/5">
                                 <ExternalLink className="w-4 h-4" />
@@ -395,14 +405,6 @@ export default function DashboardPage() {
                                 Resume
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10 bg-transparent"
-                            >
-                              <StopCircle className="w-4 h-4" />
-                              End
-                            </Button>
                           </div>
                         </div>
                       </Card>
@@ -414,6 +416,25 @@ export default function DashboardPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Fund Quest Modal */}
+      {fundingQuest && wallet && (
+        <FundQuestModal
+          isOpen={!!fundingQuest}
+          onClose={() => setFundingQuest(null)}
+          questAddress={fundingQuest.address}
+          questName={fundingQuest.name}
+          rewardToken={fundingQuest.reward_token}
+          rewardPerClaim={fundingQuest.reward_per_claim}
+          maxClaims={fundingQuest.max_claims}
+          claimsMade={fundingQuest.claims_made}
+          wallet={wallet}
+          onFunded={() => {
+            setFundingQuest(null)
+            fetchQuests()
+          }}
+        />
+      )}
     </div>
   )
 }

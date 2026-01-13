@@ -1,74 +1,155 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./QuestVault.sol";
-import "./PlayerRegistry.sol";
+import "./Quest.sol";
+import "./KYRAToken.sol";
+import "./QuestNFT.sol";
 
 /**
  * @title QuestFactory
- * @dev Single entry point to create and track KyraQuest vaults.
+ * @dev Factory contract to create and track quests
  */
 contract QuestFactory {
+    // All created quests
     address[] public quests;
-    PlayerRegistry public immutable registry;
-    address public immutable trustedSigner;
-
-    event QuestCreated(address indexed questAddress, address indexed creator);
-
-    /**
-     * @param _registry Address of the PlayerRegistry contract.
-     * @param _signer Address of the off-chain signer used for claim verification.
-     */
-    constructor(address _registry, address _signer) {
-        registry = PlayerRegistry(_registry);
-        trustedSigner = _signer;
+    
+    // KYRA token address
+    address public immutable kyraToken;
+    
+    // Mapping of creator to their quests
+    mapping(address => address[]) public creatorQuests;
+    
+    // Events
+    event QuestCreated(
+        address indexed questAddress,
+        address indexed creator,
+        string name,
+        Quest.RewardType rewardType,
+        Quest.QuestType questType,
+        address rewardToken
+    );
+    
+    constructor(address _kyraToken) {
+        kyraToken = _kyraToken;
     }
-
+    
     /**
-     * @dev Deploys a new QuestVault and registers it as an authorized updater in the PlayerRegistry.
-     * IMPORTANT: This factory must be the owner of the PlayerRegistry or have authorization rights.
-     *
-     * @param _rewardToken ERC20 token to be distributed as reward.
-     * @param _rewardPerClaim Amount of token granted per claim.
-     * @param _maxClaims Total allowed number of claims.
-     * @param _expiryTimestamp Time after which quest expires.
+     * @dev Create a new ERC20 token reward quest
      */
-    function createQuest(
+    function createTokenQuest(
+        string calldata _name,
+        string calldata _description,
+        Quest.QuestType _questType,
         address _rewardToken,
-        uint256 _rewardPerClaim,
+        uint256 _rewardAmount,
         uint256 _maxClaims,
         uint64 _expiryTimestamp
     ) external returns (address) {
-        QuestVault newQuest = new QuestVault(
+        Quest newQuest = new Quest(
+            _name,
+            _description,
+            Quest.RewardType.ERC20,
+            _questType,
             _rewardToken,
-            _rewardPerClaim,
+            _rewardAmount,
             _maxClaims,
             _expiryTimestamp,
-            msg.sender,
-            trustedSigner,
-            address(registry)
+            msg.sender
         );
-
+        
         address questAddress = address(newQuest);
         quests.push(questAddress);
-
-        // Authorize the new quest vault to update player stats.
-        // This call requires the factory to be the owner of the registry.
-        registry.setUpdaterStatus(questAddress, true);
-
-        emit QuestCreated(questAddress, msg.sender);
+        creatorQuests[msg.sender].push(questAddress);
+        
+        emit QuestCreated(
+            questAddress,
+            msg.sender,
+            _name,
+            Quest.RewardType.ERC20,
+            _questType,
+            _rewardToken
+        );
+        
         return questAddress;
     }
-
+    
     /**
-     * @dev Returns all deployed quest vault addresses.
+     * @dev Create a new quest with KYRA token rewards (convenience function)
+     */
+    function createKYRAQuest(
+        string calldata _name,
+        string calldata _description,
+        Quest.QuestType _questType,
+        uint256 _rewardAmount,
+        uint256 _maxClaims,
+        uint64 _expiryTimestamp
+    ) external returns (address) {
+        return this.createTokenQuest(
+            _name,
+            _description,
+            _questType,
+            kyraToken,
+            _rewardAmount,
+            _maxClaims,
+            _expiryTimestamp
+        );
+    }
+    
+    /**
+     * @dev Create a new NFT reward quest
+     */
+    function createNFTQuest(
+        string calldata _name,
+        string calldata _description,
+        Quest.QuestType _questType,
+        address _nftContract,
+        uint256 _maxClaims,
+        uint64 _expiryTimestamp
+    ) external returns (address) {
+        Quest newQuest = new Quest(
+            _name,
+            _description,
+            Quest.RewardType.ERC721,
+            _questType,
+            _nftContract,
+            1, // Each claim gets 1 NFT
+            _maxClaims,
+            _expiryTimestamp,
+            msg.sender
+        );
+        
+        address questAddress = address(newQuest);
+        quests.push(questAddress);
+        creatorQuests[msg.sender].push(questAddress);
+        
+        emit QuestCreated(
+            questAddress,
+            msg.sender,
+            _name,
+            Quest.RewardType.ERC721,
+            _questType,
+            _nftContract
+        );
+        
+        return questAddress;
+    }
+    
+    /**
+     * @dev Get all quests
      */
     function getAllQuests() external view returns (address[] memory) {
         return quests;
     }
-
+    
     /**
-     * @dev Returns the total number of quests created.
+     * @dev Get quests by creator
+     */
+    function getQuestsByCreator(address creator) external view returns (address[] memory) {
+        return creatorQuests[creator];
+    }
+    
+    /**
+     * @dev Get total quest count
      */
     function getQuestCount() external view returns (uint256) {
         return quests.length;
